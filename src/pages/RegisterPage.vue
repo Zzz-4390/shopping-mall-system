@@ -9,20 +9,11 @@
         class="register-form"
         @keyup.enter="handleRegister"
       >
-        <el-form-item prop="username">
+        <el-form-item prop="phone">
           <el-input
-            v-model="registerForm.username"
-            placeholder="请输入用户名"
-            prefix-icon="User"
-            clearable
-          />
-        </el-form-item>
-
-        <el-form-item prop="email">
-          <el-input
-            v-model="registerForm.email"
-            placeholder="请输入邮箱"
-            prefix-icon="Message"
+            v-model="registerForm.phone"
+            placeholder="请输入手机号"
+            prefix-icon="Phone"
             clearable
           />
         </el-form-item>
@@ -44,15 +35,6 @@
             placeholder="请确认密码"
             prefix-icon="Lock"
             show-password
-          />
-        </el-form-item>
-
-        <el-form-item prop="phone">
-          <el-input
-            v-model="registerForm.phone"
-            placeholder="请输入手机号"
-            prefix-icon="Phone"
-            clearable
           />
         </el-form-item>
 
@@ -89,23 +71,22 @@
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { userRegister } from '@/apis'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const registerFormRef = ref<FormInstance>()
 
 const registerForm = reactive({
-  username: '',
-  email: '',
+  phone: '',
   password: '',
   confirmPassword: '',
-  phone: '',
 })
 
 const agreeTerms = ref(false)
 const loading = ref(false)
 
-// 修改后的密码验证函数
+// 密码验证函数
 const validatePass = (rule: unknown, value: string, callback: (error?: Error) => void) => {
   if (value === '') {
     callback(new Error('请输入密码'))
@@ -119,7 +100,7 @@ const validatePass = (rule: unknown, value: string, callback: (error?: Error) =>
   }
 }
 
-// 修改后的确认密码验证函数
+// 确认密码验证函数
 const validatePass2 = (rule: unknown, value: string, callback: (error?: Error) => void) => {
   if (value === '') {
     callback(new Error('请再次输入密码'))
@@ -131,23 +112,15 @@ const validatePass2 = (rule: unknown, value: string, callback: (error?: Error) =
 }
 
 const registerRules = reactive<FormRules<typeof registerForm>>({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] },
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
   ],
   password: [
     { required: true, validator: validatePass, trigger: 'blur' },
     { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' },
   ],
   confirmPassword: [{ required: true, validator: validatePass2, trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
-  ],
 })
 
 const handleRegister = async () => {
@@ -157,16 +130,27 @@ const handleRegister = async () => {
     return
   }
 
-  await registerFormRef.value.validate((valid) => {
+  await registerFormRef.value.validate(async (valid) => {
     if (valid) {
-      loading.value = true
-
-      // 模拟注册请求
-      setTimeout(() => {
-        loading.value = false
-        ElMessage.success('注册成功')
+      try {
+        // const requestData = {
+        //   phone: registerForm.phone,
+        //   password: registerForm.password,
+        // }
+        loading.value = true
+        // const res = await userRegister(requestData)
+        // console.log(res)
+        ElMessage.success('注册成功！')
         router.push('/login')
-      }, 1000)
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          ElMessage.error(error.message || '注册失败，请稍后再试')
+        } else {
+          ElMessage.error('注册失败，请稍后再试')
+        }
+      } finally {
+        loading.value = false
+      }
     }
   })
 }

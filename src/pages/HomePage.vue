@@ -59,14 +59,18 @@
   <!-- 推荐区 -->
   <div class="home-page">
     <div class="container">
-      <h1 class="page-title">为你推荐</h1>
+      <div class="recommend-header">
+        <el-icon class="recommend-icon"><Star /></el-icon>
+        <h1 class="page-title">为你推荐</h1>
+      </div>
 
       <div class="products-grid">
         <ProductCard
           v-for="product in products"
-          :key="product.id"
+          :key="product.productid"
           :product="product"
           class="product-item"
+          @click="router.push('/product/' + product.productid)"
         />
       </div>
     </div>
@@ -149,18 +153,7 @@ import LayoutHead from '@/pages/LayoutHead.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
-// 定义商品信息接口
-interface Product {
-  id: number | string
-  name: string
-  price: number
-  originalPrice?: number
-  image?: string
-  description?: string
-  brand?: string
-  category?: string
-}
+import type { Product } from '@/types'
 
 const router = useRouter()
 const isCarouselHovered = ref(false)
@@ -168,243 +161,267 @@ const isCarouselHovered = ref(false)
 // 模拟商品数据 (24个商品)
 const products = ref<Product[]>([
   {
-    id: 1,
-    name: '无线蓝牙耳机',
-    price: 199.99,
-    originalPrice: 299.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '高品质无线蓝牙耳机，降噪功能，音质清晰',
-    brand: 'Brand A',
+    productid: '1',
+    sellerid: 'seller_001',
+    title: '无线蓝牙耳机',
+    content: '高品质真无线蓝牙耳机，支持主动降噪，续航时间长达24小时，音质清晰。',
+    price: 299.99,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-15T10:30:00Z',
     category: '电子产品',
   },
   {
-    id: 2,
-    name: '智能手表',
-    price: 599.99,
-    originalPrice: 799.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '多功能智能手表，健康监测，运动追踪',
-    brand: 'Brand B',
+    productid: '2',
+    sellerid: 'seller_002',
+    title: '智能手表',
+    content: '多功能智能手表，支持心率监测、运动追踪、消息提醒等功能，1.3英寸彩色显示屏。',
+    price: 599.0,
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-20T14:15:00Z',
     category: '智能设备',
   },
   {
-    id: 3,
-    name: '休闲运动鞋',
-    price: 299.99,
-    originalPrice: 399.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '舒适透气运动鞋，适合日常穿着和运动',
-    brand: 'Brand C',
+    productid: '3',
+    sellerid: 'seller_003',
+    title: '休闲运动鞋',
+    content: '轻便舒适的休闲运动鞋，透气网面设计，防滑橡胶底，适合日常穿着和轻度运动。',
+    price: 199.99,
+    photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-04-10T09:45:00Z',
     category: '鞋类',
   },
   {
-    id: 4,
-    name: '笔记本电脑',
-    price: 5999.99,
-    originalPrice: 6999.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '轻薄便携笔记本，高性能处理器',
-    brand: 'Brand D',
+    productid: '4',
+    sellerid: 'seller_004',
+    title: '轻薄笔记本电脑',
+    content: '轻薄便携笔记本电脑，搭载最新处理器，14英寸高清屏幕，适合办公和学习。',
+    price: 4999.99,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-07-01T11:20:00Z',
     category: '电脑数码',
   },
   {
-    id: 5,
-    name: '咖啡机',
-    price: 899.99,
-    originalPrice: 1099.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '全自动咖啡机，多种口味选择',
-    brand: 'Brand E',
+    productid: '5',
+    sellerid: 'seller_005',
+    title: '全自动咖啡机',
+    content: '一键式全自动咖啡机，支持多种咖啡制作方式，15Bar高压萃取，保证浓郁口感。',
+    price: 899.0,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-03-22T16:40:00Z',
     category: '家用电器',
   },
   {
-    id: 6,
-    name: '护肤品套装',
-    price: 199.99,
-    originalPrice: 299.99,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-    description: '深层清洁护肤套装，适合各种肌肤',
-    brand: 'Brand F',
+    productid: '6',
+    sellerid: 'seller_006',
+    title: '深层清洁护肤套装',
+    content: '三步曲深层清洁护肤套装，包括洁面乳、爽肤水和保湿霜，适合各种肌肤类型。',
+    price: 189.99,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-30T13:10:00Z',
     category: '美妆护肤',
   },
   {
-    id: 7,
-    name: '无线充电器',
-    price: 89.99,
-    originalPrice: 129.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '支持快充的无线充电板，兼容多种设备',
-    brand: 'Brand G',
+    productid: '7',
+    sellerid: 'seller_007',
+    title: '无线充电板',
+    content: '支持快充的无线充电板，兼容Qi标准，可同时为手机和手表充电。',
+    price: 129.99,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-05T08:50:00Z',
     category: '电子产品',
   },
   {
-    id: 8,
-    name: '机械键盘',
-    price: 399.99,
-    originalPrice: 499.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: 'RGB背光机械键盘，青轴手感',
-    brand: 'Brand H',
-    category: '电脑配件',
-  },
-  {
-    id: 9,
-    name: '运动水壶',
-    price: 59.99,
-    originalPrice: 79.99,
-    image: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-    description: '不锈钢保温运动水壶，保冷保热',
-    brand: 'Brand I',
-    category: '运动户外',
-  },
-  {
-    id: 10,
-    name: '蓝牙音箱',
-    price: 159.99,
-    originalPrice: 199.99,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-    description: '360度环绕音效，防水设计',
-    brand: 'Brand J',
-    category: '音响设备',
-  },
-  {
-    id: 11,
-    name: '电动牙刷',
-    price: 199.99,
-    originalPrice: 259.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '声波震动电动牙刷，多种清洁模式',
-    brand: 'Brand K',
-    category: '个人护理',
-  },
-  {
-    id: 12,
-    name: '移动电源',
-    price: 129.99,
-    originalPrice: 169.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '20000mAh大容量，支持快充',
-    brand: 'Brand L',
-    category: '手机配件',
-  },
-  {
-    id: 13,
-    name: '羽绒服',
-    price: 499.99,
-    originalPrice: 699.99,
-    image: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-    description: '冬季保暖羽绒服，轻薄舒适',
-    brand: 'Brand M',
-    category: '服装',
-  },
-  {
-    id: 14,
-    name: '游戏手柄',
-    price: 249.99,
-    originalPrice: 299.99,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-    description: '无线游戏手柄，人体工学设计',
-    brand: 'Brand N',
-    category: '游戏设备',
-  },
-  {
-    id: 15,
-    name: '高清摄像头',
+    productid: '8',
+    sellerid: 'seller_008',
+    title: '机械键盘',
+    content: 'RGB背光机械键盘，青轴设计，87键紧凑布局，专为游戏玩家打造。',
     price: 349.99,
-    originalPrice: 399.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '4K超清摄像头，适用于视频会议',
-    brand: 'Brand O',
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-04-18T15:25:00Z',
     category: '电脑配件',
   },
   {
-    id: 16,
-    name: '瑜伽垫',
+    productid: '9',
+    sellerid: 'seller_009',
+    title: '不锈钢保温水壶',
+    content: '500ml不锈钢真空保温水壶，保冷保热可达12小时，轻巧便携。',
     price: 79.99,
-    originalPrice: 99.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '防滑加厚瑜伽垫，环保材质',
-    brand: 'Brand P',
-    category: '运动健身',
-  },
-  {
-    id: 17,
-    name: '空气加湿器',
-    price: 159.99,
-    originalPrice: 199.99,
-    image: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-    description: '静音加湿器，大容量水箱',
-    brand: 'Brand Q',
-    category: '家用电器',
-  },
-  {
-    id: 18,
-    name: '防晒霜',
-    price: 89.99,
-    originalPrice: 119.99,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-    description: 'SPF50+高倍防晒，清爽不油腻',
-    brand: 'Brand R',
-    category: '美妆护肤',
-  },
-  {
-    id: 19,
-    name: '智能门锁',
-    price: 899.99,
-    originalPrice: 1099.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '指纹识别智能门锁，安全便捷',
-    brand: 'Brand S',
-    category: '智能家居',
-  },
-  {
-    id: 20,
-    name: '登山背包',
-    price: 299.99,
-    originalPrice: 399.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '大容量登山背包，防水耐磨',
-    brand: 'Brand T',
-    category: '户外装备',
-  },
-  {
-    id: 21,
-    name: '无线鼠标',
-    price: 69.99,
-    originalPrice: 99.99,
-    image: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-    description: '人体工学无线鼠标，静音按键',
-    brand: 'Brand U',
-    category: '电脑配件',
-  },
-  {
-    id: 22,
-    name: '保温饭盒',
-    price: 129.99,
-    originalPrice: 159.99,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-    description: '长效保温饭盒，便携设计',
-    brand: 'Brand V',
+    photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-07-12T10:05:00Z',
     category: '生活用品',
   },
   {
-    id: 23,
-    name: '台式电脑主机',
-    price: 4999.99,
-    originalPrice: 5999.99,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-    description: '高性能游戏主机，RTX显卡',
-    brand: 'Brand W',
+    productid: '10',
+    sellerid: 'seller_010',
+    title: '蓝牙音箱',
+    content: '360度环绕音效蓝牙音箱，IPX7防水等级，续航时间长达15小时。',
+    price: 199.0,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-03-28T12:30:00Z',
+    category: '音响设备',
+  },
+  {
+    productid: '11',
+    sellerid: 'seller_011',
+    title: '声波电动牙刷',
+    content: '声波震动电动牙刷，每分钟40000次震动，5种清洁模式，IPX7防水。',
+    price: 159.99,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-14T14:50:00Z',
+    category: '个人护理',
+  },
+  {
+    productid: '12',
+    sellerid: 'seller_012',
+    title: '20000mAh移动电源',
+    content: '大容量移动电源，支持双向快充，配备多个输出接口，智能安全保护。',
+    price: 129.0,
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-08T11:15:00Z',
+    category: '手机配件',
+  },
+  {
+    productid: '13',
+    sellerid: 'seller_013',
+    title: '轻薄羽绒服',
+    content: '冬季保暖羽绒服，含绒量90%，轻薄设计，时尚百搭款式。',
+    price: 399.99,
+    photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-07-03T09:20:00Z',
+    category: '服装',
+  },
+  {
+    productid: '14',
+    sellerid: 'seller_014',
+    title: '无线游戏手柄',
+    content: '人体工学无线游戏手柄，支持多平台连接，6小时续航，震动反馈。',
+    price: 249.99,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-04-25T13:40:00Z',
+    category: '游戏设备',
+  },
+  {
+    productid: '15',
+    sellerid: 'seller_015',
+    title: '4K高清摄像头',
+    content: 'USB接口4K超清摄像头，适用于视频会议、直播和在线教学。',
+    price: 299.99,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-30T10:10:00Z',
+    category: '电脑配件',
+  },
+  {
+    productid: '16',
+    sellerid: 'seller_016',
+    title: '专业瑜伽垫',
+    content: '防滑加厚瑜伽垫，环保天然橡胶材质，提供优秀的缓冲和抓地力。',
+    price: 89.99,
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-18T15:30:00Z',
+    category: '运动健身',
+  },
+  {
+    productid: '17',
+    sellerid: 'seller_017',
+    title: '智能空气加湿器',
+    content: '静音超声波加湿器，大容量水箱，支持定时功能和缺水保护。',
+    price: 159.99,
+    photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-07-08T12:20:00Z',
+    category: '家用电器',
+  },
+  {
+    productid: '18',
+    sellerid: 'seller_018',
+    title: '高倍数防晒霜',
+    content: 'SPF50+ PA++++高倍防晒霜，清爽不油腻，防水防汗，适合户外活动。',
+    price: 89.0,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-12T09:45:00Z',
+    category: '美妆护肤',
+  },
+  {
+    productid: '19',
+    sellerid: 'seller_019',
+    title: '指纹识别智能门锁',
+    content: '多种开锁方式的智能门锁，指纹、密码、钥匙三重保障，安全便捷。',
+    price: 899.0,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-04-05T14:15:00Z',
+    category: '智能家居',
+  },
+  {
+    productid: '20',
+    sellerid: 'seller_020',
+    title: '户外登山背包',
+    content: '专业登山背包，60L大容量，防水耐磨材料，人体工学背负系统。',
+    price: 299.99,
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-22T11:35:00Z',
+    category: '户外装备',
+  },
+  {
+    productid: '21',
+    sellerid: 'seller_021',
+    title: '人体工学无线鼠标',
+    content: '符合人体工学设计的无线鼠标，静音按键，DPI可调，适合长时间办公。',
+    price: 69.99,
+    photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-06-28T16:50:00Z',
+    category: '电脑配件',
+  },
+  {
+    productid: '22',
+    sellerid: 'seller_022',
+    title: '长效保温饭盒',
+    content: '304不锈钢内胆保温饭盒，长效保温保冷，便携设计，适合上班族。',
+    price: 129.0,
+    photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-04-14T10:25:00Z',
+    category: '生活用品',
+  },
+  {
+    productid: '23',
+    sellerid: 'seller_023',
+    title: '高性能台式主机',
+    content: 'RTX显卡高性能游戏主机，i7处理器，16GB内存，1TB固态硬盘。',
+    price: 4999.0,
+    photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-07-15T13:40:00Z',
     category: '电脑数码',
   },
   {
-    id: 24,
-    name: '智能体重秤',
+    productid: '24',
+    sellerid: 'seller_024',
+    title: '体脂测量智能体重秤',
+    content: '高精度体脂测量体重秤，连接手机APP，记录健康数据变化趋势。',
     price: 99.99,
-    originalPrice: 129.99,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-    description: '体脂测量智能体重秤，连接手机APP',
-    brand: 'Brand X',
+    photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    status: 'published',
+    publishtime: '2023-05-30T08:55:00Z',
     category: '健康监测',
   },
 ])
@@ -594,7 +611,7 @@ const promotions = ref([
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -620,6 +637,26 @@ const promotions = ref([
 .product-item:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.recommend-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.recommend-icon {
+  font-size: 32px;
+  color: #ff4444;
+  margin-right: 10px;
+}
+
+.page-title {
+  text-align: center;
+  margin: 0;
+  color: #333;
+  font-size: 28px;
 }
 
 /* 在大屏幕设备上确保每行最多显示6个 */

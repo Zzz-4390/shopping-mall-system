@@ -2,26 +2,22 @@
 <template>
   <div class="product-card">
     <div class="product-image">
-      <img :src="product.image || defaultImage" :alt="product.name" @error="handleImageError" />
+      <img :src="product.photo || defaultImage" :alt="product.title" @error="handleImageError" />
     </div>
 
     <div class="product-info">
-      <h3 class="product-name">{{ product.name }}</h3>
+      <h3 class="product-name">{{ product.title }}</h3>
 
       <div class="product-price">
         <span class="current-price">¥{{ product.price }}</span>
-        <span v-if="product.originalPrice" class="original-price"
-          >¥{{ product.originalPrice }}</span
-        >
       </div>
 
-      <div v-if="product.description" class="product-description">
-        {{ product.description }}
+      <div class="product-description">
+        {{ product.content }}
       </div>
 
-      <div class="product-meta" v-if="product.brand || product.category">
-        <span v-if="product.brand" class="brand">品牌: {{ product.brand }}</span>
-        <span v-if="product.category" class="category">分类: {{ product.category }}</span>
+      <div class="product-category" v-if="product.category">
+        <span class="category">分类: {{ product.category }}</span>
       </div>
     </div>
   </div>
@@ -29,18 +25,7 @@
 
 <script setup lang="ts">
 import { withDefaults } from 'vue'
-
-// 定义商品信息接口
-interface Product {
-  id: number | string
-  name: string
-  price: number
-  originalPrice?: number
-  image?: string
-  description?: string
-  brand?: string
-  category?: string
-}
+import type { Product } from '@/types/product'
 
 // 定义组件属性
 interface Props {
@@ -67,13 +52,14 @@ const handleImageError = (event: Event) => {
   transition: all 0.3s ease;
   background: #fff;
   position: relative;
+  cursor: pointer;
 }
 
 .product-card:hover {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   border-color: #ff0000;
-  outline: 2px solid #ff0000;
-  outline-offset: -2px;
+  outline: 1px solid #ff0000;
+  outline-offset: -1px;
 }
 
 .product-image {
@@ -117,13 +103,6 @@ const handleImageError = (event: Event) => {
   color: #ff4444;
 }
 
-.original-price {
-  font-size: 14px;
-  color: #999;
-  text-decoration: line-through;
-  margin-left: 8px;
-}
-
 .product-description {
   font-size: 14px;
   color: #666;
@@ -133,7 +112,7 @@ const handleImageError = (event: Event) => {
   overflow: hidden;
 }
 
-.product-meta {
+.product-category {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -141,7 +120,6 @@ const handleImageError = (event: Event) => {
   color: #999;
 }
 
-.brand,
 .category {
   background-color: #f0f2f5;
   padding: 2px 6px;

@@ -9,11 +9,11 @@
         class="login-form"
         @keyup.enter="handleLogin"
       >
-        <el-form-item prop="username">
+        <el-form-item prop="phone">
           <el-input
-            v-model="loginForm.username"
-            placeholder="请输入用户名"
-            prefix-icon="User"
+            v-model="loginForm.phone"
+            placeholder="请输入手机号"
+            prefix-icon="Phone"
             clearable
           />
         </el-form-item>
@@ -26,10 +26,6 @@
             prefix-icon="Lock"
             show-password
           />
-        </el-form-item>
-
-        <el-form-item>
-          <el-checkbox v-model="rememberMe">记住我</el-checkbox>
         </el-form-item>
 
         <el-form-item>
@@ -57,17 +53,16 @@ const router = useRouter()
 const loginFormRef = ref<FormInstance>()
 
 const loginForm = reactive({
-  username: '',
+  phone: '',
   password: '',
 })
 
-const rememberMe = ref(false)
 const loading = ref(false)
 
 const loginRules = reactive<FormRules>({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
