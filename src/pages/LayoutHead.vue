@@ -5,6 +5,7 @@
         <el-tab-pane label="首页" name="first"></el-tab-pane>
         <el-tab-pane label="消息通知" name="second"></el-tab-pane>
         <el-tab-pane label="个人中心" name="third"></el-tab-pane>
+        <el-tab-pane label="发布商品" name="fourth"></el-tab-pane>
       </el-tabs>
 
       <!-- 搜索框 -->
@@ -24,7 +25,15 @@
         </el-button>
 
         <el-badge :value="cartCount" class="cart-badge">
-          <el-button link class="cart-btn" @click="router.push('/cart')">
+          <el-button
+            link
+            class="cart-btn"
+            @click="
+              () => {
+                ;(router.push('/cart'), (activeName = ''))
+              }
+            "
+          >
             <el-icon><ShoppingCart /></el-icon>
           </el-button>
         </el-badge>
@@ -34,7 +43,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { User, ShoppingCart, Search } from '@element-plus/icons-vue'
 import type { TabsPaneContext } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -44,20 +53,42 @@ const activeName = ref('first')
 const cartCount = ref(0) // 购物车商品数量
 const router = useRouter()
 
+//获取当前tab高亮
+const getActiveName = () => {
+  const path = router.currentRoute.value.path
+  switch (path) {
+    case '/':
+      activeName.value = 'first'
+      break
+    case '/message':
+      activeName.value = 'second'
+      break
+    case '/profile':
+      activeName.value = 'third'
+      break
+    case '/publish':
+      activeName.value = 'fourth'
+      break
+  }
+}
+
+onMounted(() => {
+  getActiveName()
+})
 const handleClick = (tab: TabsPaneContext) => {
   const tabName = tab.props.name
   switch (tabName) {
     case 'first':
-      console.log('首页被点击')
       router.push('/')
       break
     case 'second':
-      console.log('消息通知被点击')
       router.push('/message')
       break
     case 'third':
-      console.log('个人中心被点击')
       router.push('/profile')
+      break
+    case 'fourth':
+      router.push('/publish')
       break
   }
 }

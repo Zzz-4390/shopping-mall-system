@@ -1,5 +1,4 @@
 <template>
-  <LayoutHead></LayoutHead>
   <div class="main-container">
     <!-- 左侧分类区 -->
     <div class="category-section section">
@@ -21,8 +20,9 @@
     <div class="carousel-wrapper section">
       <el-carousel
         height="350px"
+        trigger="click"
         class="carousel rounded-carousel"
-        :interval="1800"
+        :interval="1500"
         @mouseenter="handleCarouselHover(true)"
         @mouseleave="handleCarouselHover(false)"
         :class="{ 'carousel-hover': isCarouselHovered }"
@@ -33,6 +33,11 @@
             class="carousel-image"
             @click="router.push('/product/' + slide.id)"
           />
+          <div class="home-ad-banner-item-content-container" style="color: rgb(250, 255, 255)">
+            <div class="home-ad-banner-item-title-top">{{ slide.description?.[0] }}</div>
+            <div class="home-ad-banner-item-title-middle">{{ slide.description?.[1] }}</div>
+            <div class="home-ad-banner-item-subtitle">{{ slide.description?.[2] }}</div>
+          </div>
         </el-carousel-item>
       </el-carousel>
     </div>
@@ -149,7 +154,6 @@
 </template>
 
 <script lang="ts" setup>
-import LayoutHead from '@/pages/LayoutHead.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -443,19 +447,34 @@ const categories = ref([
 const carouselSlides = ref([
   {
     id: 1,
-    image: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
+    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_home_appliances.png',
+    description: ['智享生活焕新季', '家电狂欢省到底', '爆品直降 限时抢购'],
   },
   {
     id: 2,
-    image: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
+    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_cell_phone.png',
+    description: ['手机焕新季', '正品旗舰放心购', '官方正品 限时直降'],
   },
   {
     id: 3,
-    image: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
+    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_trendy_clothing.png',
+    description: ['潮流穿搭新势力', '解锁时尚新趋势', '潮服好价 新品折扣'],
   },
   {
     id: 4,
-    image: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
+    image:
+      'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_digital_equipment.png',
+    description: ['潮玩黑科技', '数码3C狂欢盛典', '官方正品 即刻开抢'],
+  },
+  {
+    id: 5,
+    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_home_decoration.png',
+    description: ['大牌家具家装', '点缀品质生活', '正品直降 省钱省心'],
+  },
+  {
+    id: 6,
+    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_snacks.png',
+    description: ['办公轻补给', '宅家追剧能量站', '精选好物 超值优惠'],
   },
 ])
 
@@ -574,6 +593,33 @@ const promotions = ref([
 }
 
 /* 中间轮播图区 */
+.home-ad-banner-item-content-container {
+  position: absolute; /* 关键：脱离文档流，浮在图片上 */
+  top: 60px;
+  left: 40px;
+  margin-top: 0; /* 去掉原margin-top:80px，避免冲突 */
+  z-index: 2; /* 确保文字在图片上方（图片默认z-index:1） */
+  /* 保留原有的文字样式 */
+}
+
+.home-ad-banner-item-title-middle,
+.home-ad-banner-item-title-top {
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 40px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.home-ad-banner-item-subtitle {
+  font-size: 16px;
+  line-height: 24px;
+  margin-left: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .carousel-wrapper {
   flex: 0 0 60%;
   cursor: pointer;

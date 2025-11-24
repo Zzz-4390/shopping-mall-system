@@ -19,8 +19,7 @@ export default defineConfig({
     Components({
       resolvers: [
         ElementPlusResolver({
-          importStyle: 'css', // 关键！自动导入组件的 CSS 样式（也可设为 'scss' 用 SCSS 源文件）
-          // 注意：如果用 SCSS，需额外安装 sass 依赖（npm i sass -D）
+          importStyle: 'css',
         }),
       ],
     }),

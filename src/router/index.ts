@@ -6,11 +6,43 @@ import Message from '@/pages/MessagePage.vue'
 import Profile from '@/pages/ProfilePage.vue'
 import Cart from '@/pages/CartPage.vue'
 import ProductDetail from '@/pages/ProductDetail.vue'
+import ProductPublish from '@/pages/ProductPublish.vue'
+import LayoutWrapper from '@/pages/LayoutWrapper.vue'
 
 const routes = [
   {
-    path: '/',
-    component: Home,
+    path: '',
+    component: LayoutWrapper,
+    children: [
+      {
+        path: '',
+        component: Home,
+      },
+      {
+        // path: '/message/:id',
+        path: '/message',
+        component: Message,
+      },
+      {
+        // path: '/profile/:id',
+        path: '/profile',
+        component: Profile,
+      },
+      {
+        // path: '/cart/:id',
+        path: '/cart',
+        component: Cart,
+      },
+      {
+        // path: '/cart/:id',
+        path: '/product/:id',
+        component: ProductDetail,
+      },
+      {
+        path: '/publish',
+        component: ProductPublish,
+      },
+    ],
   },
   {
     path: '/login',
@@ -19,26 +51,6 @@ const routes = [
   {
     path: '/register',
     component: Register,
-  },
-  {
-    // path: '/message/:id',
-    path: '/message',
-    component: Message,
-  },
-  {
-    // path: '/profile/:id',
-    path: '/profile',
-    component: Profile,
-  },
-  {
-    // path: '/cart/:id',
-    path: '/cart',
-    component: Cart,
-  },
-  {
-    // path: '/cart/:id',
-    path: '/product/:id',
-    component: ProductDetail,
   },
 ]
 
