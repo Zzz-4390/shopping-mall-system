@@ -29,4 +29,28 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/user': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/product': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/cart': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/orders': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/message': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

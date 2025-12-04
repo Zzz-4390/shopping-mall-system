@@ -133,13 +133,13 @@ const handleRegister = async () => {
   await registerFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // const requestData = {
-        //   phone: registerForm.phone,
-        //   password: registerForm.password,
-        // }
+        const requestData = {
+          phone: registerForm.phone,
+          password: registerForm.password,
+        }
         loading.value = true
-        // const res = await userRegister(requestData)
-        // console.log(res)
+        const res = await userRegister(requestData)
+        console.log(res)
         ElMessage.success('注册成功！')
         router.push('/login')
       } catch (error: unknown) {
