@@ -48,7 +48,10 @@ import { ElMessage } from 'element-plus'
 import 'element-plus/es/components/message/style/css'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { userLogin } from '@/apis'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const router = useRouter()
 const loginFormRef = ref<FormInstance>()
 
@@ -70,19 +73,35 @@ const loginRules = reactive<FormRules>({
   ],
 })
 
+// 登录
 const handleLogin = async () => {
   if (!loginFormRef.value) return
 
-  await loginFormRef.value.validate((valid) => {
+  await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
 
-      // 模拟登录请求
-      setTimeout(() => {
+      try {
+        const res = await userLogin({
+          phone: loginForm.phone,
+          password: loginForm.password,
+        })
+        console.log(res)
+        if (res.data.code === 200) {
+          ElMessage.success('登录成功')
+          userStore.setUserInfo(res.data.data)
+          router.push('/')
+        } else {
+          ElMessage.error(res.data.message || '登录失败')
+        }
+      } catch (error) {
+        console.error('登录错误:', error)
+        // 登录失败清空表单
+        loginForm.phone = ''
+        loginForm.password = ''
+      } finally {
         loading.value = false
-        ElMessage.success('登录成功')
-        router.push('/')
-      }, 1000)
+      }
     }
   })
 }

@@ -8,7 +8,7 @@ interface ApiResponse {
 }
 
 const request = axios.create({
-  baseURL: import.meta.env.MODE === 'development' ? '' : 'http://localhost:3000',
+  baseURL: 'http://localhost:3000',
   timeout: 10000,
 })
 

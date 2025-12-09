@@ -19,10 +19,29 @@
 
       <!-- 右侧操作按钮 -->
       <div class="action-buttons">
-        <el-button link class="login-btn" @click="router.push('/login')">
-          <el-icon><User /></el-icon>
-          登录
-        </el-button>
+        <!-- 根据登录状态显示不同内容 -->
+        <div v-if="!userStore.isLoggedIn" class="login-section">
+          <el-button link class="login-btn" @click="router.push('/login')">
+            <el-icon><User /></el-icon>
+            登录
+          </el-button>
+        </div>
+
+        <div v-else class="user-section">
+          <el-dropdown @command="handleUserCommand">
+            <span class="user-info">
+              <span class="username">{{
+                userStore.userInfo.name || userStore.userInfo.phone
+              }}</span>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
 
         <el-badge :value="cartCount" class="cart-badge">
           <el-button
@@ -47,11 +66,14 @@ import { onMounted, ref } from 'vue'
 import { User, ShoppingCart, Search } from '@element-plus/icons-vue'
 import type { TabsPaneContext } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 const searchInput = ref('')
 const activeName = ref('first')
 const cartCount = ref(0) // 购物车商品数量
 const router = useRouter()
+const userStore = useUserStore()
 
 //获取当前tab高亮
 const getActiveName = () => {
@@ -75,6 +97,7 @@ const getActiveName = () => {
 onMounted(() => {
   getActiveName()
 })
+
 const handleClick = (tab: TabsPaneContext) => {
   const tabName = tab.props.name
   switch (tabName) {
@@ -89,6 +112,32 @@ const handleClick = (tab: TabsPaneContext) => {
       break
     case 'fourth':
       router.push('/publish')
+      break
+  }
+}
+
+// 处理用户下拉菜单命令
+const handleUserCommand = (command: string) => {
+  switch (command) {
+    case 'profile':
+      router.push('/profile')
+      break
+    case 'logout':
+      // 添加退出登录确认提示
+      ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+        .then(() => {
+          // 确认退出登录
+          userStore.clearUserInfo()
+          ElMessage.success('已退出登录')
+          router.push('/')
+        })
+        .catch(() => {
+          // 取消退出登录
+        })
       break
   }
 }
@@ -190,5 +239,31 @@ const handleClick = (tab: TabsPaneContext) => {
 .cart-badge :deep(.el-badge__content) {
   top: 10px;
   right: 5px;
+}
+
+/* 用户信息样式 */
+.user-section {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.user-avatar {
+  background-color: #409eff;
+}
+
+.username {
+  font-size: 14px;
+  color: #606266;
+}
+
+.user-info:hover .username {
+  color: #409eff;
 }
 </style>
