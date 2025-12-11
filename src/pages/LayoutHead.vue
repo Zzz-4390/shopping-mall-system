@@ -62,18 +62,20 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { User, ShoppingCart, Search } from '@element-plus/icons-vue'
 import type { TabsPaneContext } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
 
 const searchInput = ref('')
 const activeName = ref('first')
-const cartCount = ref(0) // 购物车商品数量
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const cartCount = userStore.cartCount // 购物车商品数量
 
 //获取当前tab高亮
 const getActiveName = () => {
@@ -91,12 +93,23 @@ const getActiveName = () => {
     case '/publish':
       activeName.value = 'fourth'
       break
+    default:
+      // 任何非主导航页面都取消高亮
+      activeName.value = ''
   }
 }
 
 onMounted(() => {
   getActiveName()
 })
+
+// 监听路由变化（包含前进/后退），同步 tab 高亮
+watch(
+  () => route.path,
+  () => {
+    getActiveName()
+  },
+)
 
 const handleClick = (tab: TabsPaneContext) => {
   const tabName = tab.props.name

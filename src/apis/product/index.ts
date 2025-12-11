@@ -1,11 +1,13 @@
 import request from '@/utils/request'
+import type { AxiosResponse } from 'axios'
 import type { CreateProductRequest, UpdateProductRequest, Product, ApiResult } from '@/types'
 
 const baseURL = '/product'
 
 // 创建商品
-export const createProduct = (body: CreateProductRequest): Promise<ApiResult<Product>> =>
-  request.post(`${baseURL}/add`, body)
+export const createProduct = (
+  body: CreateProductRequest,
+): Promise<AxiosResponse<ApiResult<Product>>> => request.post(`${baseURL}/add`, body)
 
 // 获取所有商品
 export const getAllProducts = (): Promise<ApiResult<Product[]>> => request.get(`${baseURL}/getAll`)

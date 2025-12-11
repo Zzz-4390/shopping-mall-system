@@ -3,7 +3,7 @@
     <!-- 头部 -->
     <div class="profile-header">
       <div class="avatar-section">
-        <img :src="userInfo.avatar || defaultAvatar" alt="头像" class="avatar" />
+        <img :src="userInfo.photo || defaultAvatar" alt="头像" class="avatar" />
         <el-upload
           class="avatar-uploader"
           action="/api/upload/avatar"
@@ -16,8 +16,8 @@
       </div>
 
       <div class="user-info">
-        <h2>{{ userInfo.username }}</h2>
-        <p class="register-time">注册时间: {{ formatRegisterTime(userInfo.registerTime) }}</p>
+        <h2>{{ userInfo.name }}</h2>
+        <p class="register-time">注册时间: {{ formatRegisterTime(userInfo.registertime || '') }}</p>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
             label-width="100px"
             class="profile-form"
           >
-            <el-form-item label="用户名" prop="username">
+            <el-form-item label="用户名" prop="name">
               <el-input v-model="editingUsername" :disabled="!isEditing"></el-input>
             </el-form-item>
 
@@ -182,21 +182,18 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, UploadProps, FormItemRule } from 'element-plus'
 import defaultAvatar from '@/assets/avatar.jpg'
 import type { Product } from '@/types/product'
+import type { User } from '@/types/user'
+import { useUserStore } from '@/stores/user'
+import { updateUser } from '@/apis/user'
+import { useRouter } from 'vue-router'
 
-interface UserInfo {
-  username: string
-  registerTime: string
-  avatar: string
-  phone: string
-}
-
+const router = useRouter()
 const formRef = ref<FormInstance>()
 const productFormRef = ref()
-
+const userStore = useUserStore()
 // 添加密码相关的响应式变量
 const passwordDialogVisible = ref(false)
 const passwordFormRef = ref<FormInstance>()
-
 const isEditing = ref(false)
 const activeTab = ref('profile')
 const loading = ref(false)
@@ -208,14 +205,14 @@ const totalProducts = ref(0)
 // 添加一个新的响应式变量来保存编辑中的用户名
 const editingUsername = ref('')
 
-const userInfo = reactive<UserInfo>({
-  username: '',
-  registerTime: '',
-  avatar: '',
+const userInfo = reactive<Partial<User>>({
+  name: '',
+  registertime: '',
+  photo: '',
   phone: '',
 })
 
-const originalUserInfo = reactive<UserInfo>({ ...userInfo })
+const originalUserInfo = reactive<Partial<User>>({ ...userInfo })
 
 const productList = ref<Product[]>([])
 
@@ -267,7 +264,7 @@ const passwordRules = {
 
 // 表单验证规则
 const rules = {
-  username: [
+  name: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
   ],
@@ -310,7 +307,7 @@ const formatDate = (dateString: string) => {
 // 切换编辑状态
 const toggleEdit = () => {
   isEditing.value = true
-  editingUsername.value = userInfo.username // 初始化编辑值
+  editingUsername.value = userInfo.name || '' // 初始化编辑值
   Object.assign(originalUserInfo, { ...userInfo })
 }
 
@@ -318,12 +315,22 @@ const toggleEdit = () => {
 const saveProfile = async () => {
   if (!formRef.value) return
   // 需要先更新表单模型以通过验证
-  userInfo.username = editingUsername.value
-  await formRef.value.validate((valid) => {
+  userInfo.name = editingUsername.value
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      // 这里应该调用API保存用户信息
-      ElMessage.success('保存成功')
-      isEditing.value = false
+      try {
+        const updatedInfo = {
+          name: userInfo.name,
+        }
+        const id = userStore.userInfo.userid
+        await updateUser(id, updatedInfo)
+        ElMessage.success('保存成功')
+        userStore.setUserInfo(updatedInfo)
+        isEditing.value = false
+      } catch (error) {
+        ElMessage.error('保存失败')
+        console.error(error)
+      }
     } else {
       ElMessage.error('请检查输入信息')
     }
@@ -333,7 +340,7 @@ const saveProfile = async () => {
 // 取消编辑
 const cancelEdit = () => {
   isEditing.value = false
-  editingUsername.value = userInfo.username
+  editingUsername.value = userInfo.name || ''
   // 将用户信息恢复到编辑前的状态
   Object.assign(userInfo, { ...originalUserInfo })
   // 清除表单验证状态
@@ -356,7 +363,7 @@ const openPasswordDialog = () => {
 // 处理头像上传成功
 const handleAvatarSuccess: UploadProps['onSuccess'] = (response) => {
   if (response && response.url) {
-    userInfo.avatar = response.url
+    userInfo.photo = response.url
     ElMessage.success('头像更新成功')
   } else {
     ElMessage.error('头像更新失败')
@@ -375,18 +382,25 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
   return true
 }
 
-// 模拟获取用户信息
+// 获取用户信息
 const fetchUserInfo = () => {
-  // 实际项目中这里应该是API调用
-  Object.assign(userInfo, {
-    username: '张三',
-    registerTime: '2023-01-15T10:30:00Z',
-    avatar: '',
-    phone: '13800138000',
-  })
-  // 初始化编辑用户名
-  if (!isEditing.value) {
-    editingUsername.value = userInfo.username
+  try {
+    const userData = userStore.userInfo
+    // 更新用户信息
+    Object.assign(userInfo, {
+      name: userData.name,
+      registertime: userData.registertime,
+      photo: userData.photo,
+      phone: userData.phone,
+    })
+
+    // 初始化编辑用户名
+    if (!isEditing.value) {
+      editingUsername.value = userInfo.name || ''
+    }
+  } catch (error) {
+    ElMessage.error('获取用户信息失败')
+    console.error('Failed to fetch user info:', error)
   }
 }
 
@@ -654,14 +668,18 @@ const savePassword = async () => {
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // 这里应该调用API修改密码
-        // await api.changePassword({
-        //   oldPassword: passwordForm.oldPassword,
-        //   newPassword: passwordForm.newPassword
-        // })
-
+        // 调用API修改密码
+        const userId = userStore.userInfo.userid
+        const res = await updateUser(userId, {
+          oldPassword: passwordForm.oldPassword,
+          password: passwordForm.newPassword,
+        })
+        console.log(res)
+        resetPasswordForm()
         ElMessage.success('密码修改成功')
         passwordDialogVisible.value = false
+        userStore.clearUserInfo()
+        router.push('/login')
       } catch (error) {
         ElMessage.error('密码修改失败')
         console.error(error)

@@ -18,6 +18,9 @@ export const useUserStore = defineStore('user', () => {
 
   // 是否已登录，基于内存中的 userInfo
   const isLoggedIn = computed(() => !!userInfo.value.userid)
+
+  // 购物车数量
+  const cartCount = computed(() => userInfo.value.cart?.length || 0)
   // 设置用户信息
   const setUserInfo = (info: Partial<User>) => {
     userInfo.value = {
@@ -74,9 +77,9 @@ export const useUserStore = defineStore('user', () => {
         // 不阻塞调用者，异步刷新
         getUser(parsed.userid)
           .then((res) => {
-            if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+            if (res && Array.isArray(res) && res.length > 0) {
               // 使用后端最新数据覆盖本地快照
-              const u = res.data[0]
+              const u = res[0]
               if (u) {
                 setUserInfo(u as Partial<User>)
               }
@@ -94,6 +97,7 @@ export const useUserStore = defineStore('user', () => {
   return {
     userInfo,
     isLoggedIn,
+    cartCount,
     setUserInfo,
     clearUserInfo,
     restoreUserInfo,

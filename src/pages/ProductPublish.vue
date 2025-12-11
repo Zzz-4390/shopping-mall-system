@@ -40,10 +40,9 @@
           <label for="price">商品价格</label>
           <input
             id="price"
-            v-model.number="productForm.price"
-            type="number"
-            min="0"
-            step="0.01"
+            v-model="priceDisplay"
+            type="text"
+            inputmode="decimal"
             placeholder="请输入价格"
             class="form-control"
             :class="{ 'is-invalid': errors.price }"
@@ -56,25 +55,19 @@
         <div class="form-group">
           <label>商品图片</label>
           <div class="image-upload-area">
-            <div class="image-preview" v-for="(image, index) in productForm.photo" :key="index">
-              <img :src="image.url" :alt="'商品图片' + (index + 1)" />
-              <button type="button" @click="removeImage(index)" class="remove-image-btn">×</button>
+            <!-- 只允许上传一张图片：有图片则显示预览并可删除；无图片时显示占位上传区 -->
+            <div class="image-preview" v-if="productForm.photo.length > 0">
+              <img :src="productForm.photo?.[0]?.url ?? ''" alt="商品图片" />
+              <button type="button" @click="removeImage()" class="remove-image-btn">×</button>
             </div>
 
-            <div
-              v-if="productForm.photo.length < maxImages"
-              class="upload-placeholder"
-              @click="triggerFileInput"
-            >
+            <div v-else class="upload-placeholder" @click="triggerFileInput">
               <div class="upload-icon">+</div>
-              <p>
-                点击上传图片<br /><small>(最多{{ maxImages }}张)</small>
-              </p>
+              <p>点击上传图片<br /><small>(仅限1张)</small></p>
               <input
                 ref="fileInput"
                 type="file"
                 accept="image/*"
-                multiple
                 @change="handleImageUpload"
                 class="hidden-file-input"
               />
@@ -112,7 +105,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-
+import { createProduct } from '@/apis'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import type { CreateProductRequest } from '@/types'
 // 表单数据
 const productForm = reactive({
   title: '',
@@ -122,6 +118,9 @@ const productForm = reactive({
   content: '',
 })
 
+// 显示用价格字符串，确保展示两位小数
+const priceDisplay = ref('')
+
 // 错误信息
 const errors = reactive<Record<string, string>>({})
 
@@ -130,7 +129,7 @@ const isSubmitting = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 // 配置参数
-const maxImages = 6
+// 单图上传，不再需要 maxImages
 
 // 分类选项
 const categories = [
@@ -144,6 +143,7 @@ const categories = [
 
 // 路由
 const router = useRouter()
+const userStore = useUserStore()
 
 // 触发文件选择
 const triggerFileInput = () => {
@@ -152,54 +152,60 @@ const triggerFileInput = () => {
   }
 }
 
-// 处理图片上传
+// 处理图片上传（仅一张）
 const handleImageUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
-  const files = target.files
+  const file = target.files?.[0]
 
-  if (!files || files.length === 0) return
+  if (!file) return
 
-  // 检查数量限制
-  if (productForm.photo.length + files.length > maxImages) {
-    alert(`最多只能上传${maxImages}张图片`)
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件')
+    target.value = ''
     return
   }
 
-  // 处理每个文件
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
-
-    // 确保 file 存在
-    if (!file) continue
-
-    // 检查文件类型
-    if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件')
-      continue
-    }
-
-    // 创建预览URL
-    const url = URL.createObjectURL(file)
-    productForm.photo.push({ file, url })
+  // 可选：限制大小（例如 5MB）
+  const maxMb = 5
+  if (file.size / 1024 / 1024 > maxMb) {
+    alert(`图片大小不能超过 ${maxMb} MB`)
+    target.value = ''
+    return
   }
 
-  // 清空input值以便重复选择同一文件
+  // 生成预览并替换已有图片（仅保留一张）
+  const url = URL.createObjectURL(file)
+  productForm.photo = [{ file, url }]
+
+  // 清空 input 值以便重复选择同一文件
   target.value = ''
 }
 
-// 移除图片
-const removeImage = (index: number) => {
-  productForm.photo.splice(index, 1)
+// 移除图片（清空单张图片）
+const removeImage = () => {
+  productForm.photo = []
 }
 
-// 格式化价格为最多两位小数
+// 格式化价格为两位小数并同步为数值
 const formatPrice = () => {
-  if (productForm.price !== null && productForm.price !== undefined) {
-    // 保留最多两位小数
-    const fixed = productForm.price.toFixed(2)
-    // 去掉末尾的0
-    productForm.price = parseFloat(fixed)
+  if (!priceDisplay.value) {
+    productForm.price = null
+    return
   }
+
+  // 允许用户输入千位分隔符或空格，先移除
+  const cleaned = priceDisplay.value.replace(/[,\s]/g, '')
+  const parsed = parseFloat(cleaned)
+  if (isNaN(parsed) || parsed <= 0) {
+    errors.price = '请输入有效的商品价格'
+    return
+  }
+
+  const fixed = parsed.toFixed(2)
+  priceDisplay.value = fixed
+  productForm.price = parseFloat(fixed)
+  delete errors.price
 }
 
 // 验证表单
@@ -238,26 +244,45 @@ const submitProduct = async () => {
   isSubmitting.value = true
 
   try {
-    // 这里应该调用API提交商品数据
-    // await productService.createProduct(productForm)
+    // 确保价格已格式化
+    formatPrice()
 
-    // 模拟API调用延迟
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // 构建请求体
+    const sellerid = userStore.userInfo.userid || ''
+    const payload = {
+      sellerid,
+      title: productForm.title,
+      content: productForm.content,
+      price: productForm.price || 0,
+      photo: productForm?.photo?.[0]?.url ?? null,
+      category: productForm.category,
+    }
 
-    // 发布成功后跳转
-    alert('商品发布成功！')
-    router.push('/products')
+    const res = await createProduct(payload as CreateProductRequest)
+    console.log(res)
+    if (res?.data?.code === 200) {
+      ElMessage.success('商品发布成功！')
+      router.push('/')
+    } else {
+      ElMessage.error(res?.data?.message || '商品发布失败')
+    }
   } catch (error) {
     console.error('发布失败:', error)
-    alert('商品发布失败，请稍后重试')
+    ElMessage.error('商品发布失败，请稍后重试')
   } finally {
     isSubmitting.value = false
   }
 }
 
 // 重置表单
-const resetForm = () => {
-  if (confirm('确定要重置表单吗？所有已填写的内容将会丢失。')) {
+const resetForm = async () => {
+  try {
+    await ElMessageBox.confirm('确定要重置表单吗？所有已填写的内容将会丢失。', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     productForm.title = ''
     productForm.category = ''
     productForm.price = null
@@ -266,6 +291,9 @@ const resetForm = () => {
 
     // 清空错误信息
     Object.keys(errors).forEach((key) => delete errors[key])
+  } catch {
+    // 用户点击取消或关闭弹窗时不执行任何操作
+    return
   }
 }
 </script>
