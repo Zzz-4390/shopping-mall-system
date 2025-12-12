@@ -1,4 +1,3 @@
-<!-- src/components/ProductCard.vue -->
 <template>
   <div class="product-card">
     <div class="product-image">
@@ -17,14 +16,13 @@
       </div>
 
       <div class="product-category" v-if="product.category">
-        <span class="category">分类: {{ product.category }}</span>
+        <span class="category">分类: {{ getCategoryName(product.category) }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { withDefaults } from 'vue'
 import type { Product } from '@/types/product'
 
 // 定义组件属性
@@ -41,6 +39,21 @@ const props = withDefaults(defineProps<Props>(), {
 const handleImageError = (event: Event) => {
   const imgElement = event.target as HTMLImageElement
   imgElement.src = props.defaultImage
+}
+
+// 分类映射关系
+const categoryMap: Record<string, string> = {
+  electronics: '数码电子',
+  clothing: '服装鞋帽',
+  books: '图书教材',
+  home: '家居用品',
+  sports: '运动户外',
+  other: '其他'
+}
+
+// 获取分类名称
+const getCategoryName = (categoryId: string): string => {
+  return categoryMap[categoryId] || categoryId
 }
 </script>
 

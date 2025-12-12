@@ -27,8 +27,9 @@ export const getProductById = (productid: string): Promise<ApiResult<Product>> =
   request.get(`${baseURL}/get/${productid}`)
 
 // 根据卖家ID获取商品列表
-export const getProductsBySeller = (sellerid: string): Promise<ApiResult<Product[]>> =>
-  request.get(`${baseURL}/seller/${sellerid}`)
+export const getProductsBySeller = (
+  sellerid: string,
+): Promise<AxiosResponse<ApiResult<Product[]>>> => request.get(`${baseURL}/seller/${sellerid}`)
 
 // 根据分类获取商品列表
 export const getProductsByCategory = (category: string): Promise<ApiResult<Product[]>> =>

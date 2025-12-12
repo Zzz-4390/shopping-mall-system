@@ -11,6 +11,26 @@ export type Product = {
 }
 
 /**
+ * 商品分类类型
+ */
+export type Category = {
+  id: string
+  name: string
+}
+
+/**
+ * 商品分类选项
+ */
+export const categories: Category[] = [
+  { id: 'electronics', name: '数码电子' },
+  { id: 'clothing', name: '服装鞋帽' },
+  { id: 'books', name: '图书教材' },
+  { id: 'home', name: '家居用品' },
+  { id: 'sports', name: '运动户外' },
+  { id: 'other', name: '其他' },
+]
+
+/**
  * 创建商品请求体（前端请求）
  */
 export type CreateProductRequest = {

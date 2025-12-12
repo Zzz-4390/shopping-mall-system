@@ -105,10 +105,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { createProduct } from '@/apis'
+import request from '@/utils/request'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import type { CreateProductRequest } from '@/types'
+import { categories } from '@/types'
 // 表单数据
 const productForm = reactive({
   title: '',
@@ -130,16 +130,6 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 // 配置参数
 // 单图上传，不再需要 maxImages
-
-// 分类选项
-const categories = [
-  { id: 'electronics', name: '数码电子' },
-  { id: 'clothing', name: '服装鞋帽' },
-  { id: 'books', name: '图书教材' },
-  { id: 'home', name: '家居用品' },
-  { id: 'sports', name: '运动户外' },
-  { id: 'other', name: '其他' },
-]
 
 // 路由
 const router = useRouter()
@@ -247,19 +237,21 @@ const submitProduct = async () => {
     // 确保价格已格式化
     formatPrice()
 
-    // 构建请求体
+    // 构建 FormData 并上传文件（字段名与后端 multer.single('file') 对应）
     const sellerid = userStore.userInfo.userid || ''
-    const payload = {
-      sellerid,
-      title: productForm.title,
-      content: productForm.content,
-      price: productForm.price || 0,
-      photo: productForm?.photo?.[0]?.url ?? null,
-      category: productForm.category,
-    }
+    const formData = new FormData()
+    formData.append('sellerid', sellerid)
+    formData.append('title', productForm.title)
+    formData.append('content', productForm.content)
+    formData.append('price', String(productForm.price || 0))
+    formData.append('category', productForm.category)
 
-    const res = await createProduct(payload as CreateProductRequest)
-    console.log(res)
+    const fileToUpload = productForm?.photo?.[0]?.file
+    if (fileToUpload) {
+      formData.append('file', fileToUpload)
+    }
+    console.log('formData:', formData)
+    const res = await request.post('/product/add', formData)
     if (res?.data?.code === 200) {
       ElMessage.success('商品发布成功！')
       router.push('/')

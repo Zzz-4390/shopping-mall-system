@@ -66,12 +66,12 @@
               <template #default="scope"> {{ scope.row.title }} </template></el-table-column
             >
             <el-table-column prop="price" label="价格" width="120">
-              <template #default="scope"> ¥{{ scope.row.price }} </template>
+              <template #default="scope"> ¥{{ formatPrice(scope.row.price) }}</template>
             </el-table-column>
             <el-table-column prop="status" label="状态" width="100">
               <template #default="scope">
-                <el-tag :type="scope.row.status === 'onsale' ? 'success' : 'info'">
-                  {{ scope.row.status === 'onsale' ? '已上架' : '已下架' }}
+                <el-tag :type="scope.row.status === 'ON_SALE' ? 'success' : 'info'">
+                  {{ scope.row.status === 'ON_SALE' ? '已上架' : '已下架' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -86,10 +86,10 @@
                 <el-button size="small" @click="editProduct(scope.row)">编辑</el-button>
                 <el-button
                   size="small"
-                  :type="scope.row.status === 'onsale' ? 'warning' : 'success'"
+                  :type="scope.row.status === 'ON_SALE' ? 'warning' : 'success'"
                   @click="toggleProductStatus(scope.row)"
                 >
-                  {{ scope.row.status === 'onsale' ? '下架' : '上架' }}
+                  {{ scope.row.status === 'ON_SALE' ? '下架' : '上架' }}
                 </el-button>
                 <el-button size="small" type="danger" @click="deleteProduct(scope.row)"
                   >删除</el-button
@@ -113,19 +113,51 @@
     </el-tabs>
 
     <!-- 商品编辑对话框 -->
-    <el-dialog v-model="productDialogVisible" width="500px">
-      <el-form :model="currentProduct" :rules="productRules" ref="productFormRef">
+    <el-dialog v-model="productDialogVisible" width="500px" class="product-edit-dialog">
+      <div class="dialog-header">
+        <h3>编辑商品</h3>
+      </div>
+
+      <el-form
+        :model="currentProduct"
+        :rules="productRules"
+        ref="productFormRef"
+        label-width="80px"
+        class="product-edit-form"
+      >
         <el-form-item label="商品名称" prop="title">
-          <el-input v-model="currentProduct.title"></el-input>
+          <el-input v-model="currentProduct.title" disabled class="form-input"></el-input>
         </el-form-item>
+
         <el-form-item label="价格" prop="price">
-          <el-input-number v-model="currentProduct.price" :min="0" :step="1"></el-input-number>
+          <el-input-number
+            v-model="currentProduct.price"
+            :min="0"
+            :step="1"
+            :precision="2"
+            controls-position="right"
+            class="form-input price-input"
+          >
+          </el-input-number>
         </el-form-item>
+
         <el-form-item label="描述" prop="content">
-          <el-input type="textarea" v-model="currentProduct.content"></el-input>
+          <el-input
+            type="textarea"
+            v-model="currentProduct.content"
+            disabled
+            :rows="3"
+            class="form-input"
+          ></el-input>
         </el-form-item>
+
         <el-form-item label="分类" prop="category">
-          <el-select v-model="currentProduct.category" placeholder="请选择分类">
+          <el-select
+            v-model="currentProduct.category"
+            placeholder="请选择分类"
+            disabled
+            class="form-input"
+          >
             <el-option
               v-for="item in categories"
               :key="item.value"
@@ -135,11 +167,12 @@
           </el-select>
         </el-form-item>
       </el-form>
+
       <template #footer>
-        <span class="dialog-footer">
+        <div class="dialog-footer">
           <el-button @click="productDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="saveProduct">保存</el-button>
-        </span>
+        </div>
       </template>
     </el-dialog>
 
@@ -186,7 +219,7 @@ import type { User } from '@/types/user'
 import { useUserStore } from '@/stores/user'
 import { updateUser } from '@/apis/user'
 import { useRouter } from 'vue-router'
-
+import { getProductsBySeller, updateProduct, deleteProduct as apiDeleteProduct } from '@/apis'
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const productFormRef = ref()
@@ -223,7 +256,7 @@ const currentProduct = reactive({
   price: 0,
   content: '',
   category: '',
-  status: 'onsale',
+  status: 'ON_SALE',
 })
 
 // 添加密码表单数据
@@ -276,9 +309,9 @@ const rules = {
 
 // 商品验证规则
 const productRules = {
-  title: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  title: [{ message: '请输入商品名称', trigger: 'blur' }],
   price: [{ required: true, message: '请输入价格', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  category: [{ message: '请选择分类', trigger: 'change' }],
 }
 
 // 商品分类选项
@@ -408,141 +441,17 @@ const fetchUserInfo = () => {
 const fetchProducts = async () => {
   loading.value = true
   try {
-    // 模拟所有商品数据 (12条)
-    const allProducts: Product[] = [
-      {
-        productid: '1',
-        sellerid: 'seller001',
-        title: 'iPhone 12',
-        price: 3999,
-        content: '二手iPhone 12，几乎全新',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-01T10:00:00Z',
-        category: 'electronics',
-      },
-      {
-        productid: '2',
-        sellerid: 'seller001',
-        title: 'MacBook Pro',
-        price: 8999,
-        content: 'MacBook Pro 13寸，使用一年',
-        photo: '',
-        status: 'sold',
-        publishtime: '2023-05-02T14:30:00Z',
-        category: 'electronics',
-      },
-      {
-        productid: '3',
-        sellerid: 'seller001',
-        title: '华为P40',
-        price: 2999,
-        content: '华为P40手机，九成新',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-03T09:15:00Z',
-        category: 'electronics',
-      },
-      {
-        productid: '4',
-        sellerid: 'seller001',
-        title: '耐克运动鞋',
-        price: 599,
-        content: '耐克篮球鞋，42码',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-04T16:45:00Z',
-        category: 'clothing',
-      },
-      {
-        productid: '5',
-        sellerid: 'seller001',
-        title: 'JavaScript高级程序设计',
-        price: 89,
-        content: '第4版，几乎全新',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-05T11:20:00Z',
-        category: 'books',
-      },
-      {
-        productid: '6',
-        sellerid: 'seller001',
-        title: '小米空气净化器',
-        price: 799,
-        content: '小米3代空气净化器，使用半年',
-        photo: '',
-        status: 'sold',
-        publishtime: '2023-05-06T13:30:00Z',
-        category: 'home',
-      },
-      {
-        productid: '7',
-        sellerid: 'seller001',
-        title: '联想ThinkPad',
-        price: 4500,
-        content: '联想ThinkPad笔记本，办公利器',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-07T10:00:00Z',
-        category: 'electronics',
-      },
-      {
-        productid: '8',
-        sellerid: 'seller001',
-        title: '阿迪达斯外套',
-        price: 399,
-        content: '阿迪达斯春季外套，M码',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-08T15:45:00Z',
-        category: 'clothing',
-      },
-      {
-        productid: '9',
-        sellerid: 'seller001',
-        title: 'Vue.js实战',
-        price: 69,
-        content: 'Vue.js开发指南，适合初学者',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-09T14:20:00Z',
-        category: 'books',
-      },
-      {
-        productid: '10',
-        sellerid: 'seller001',
-        title: '宜家台灯',
-        price: 129,
-        content: '简约风格台灯，护眼设计',
-        photo: '',
-        status: 'sold',
-        publishtime: '2023-05-10T17:30:00Z',
-        category: 'home',
-      },
-      {
-        productid: '11',
-        sellerid: 'seller001',
-        title: '索尼耳机',
-        price: 899,
-        content: '索尼降噪耳机，音质出色',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-11T09:00:00Z',
-        category: 'electronics',
-      },
-      {
-        productid: '12',
-        sellerid: 'seller001',
-        title: '优衣库衬衫',
-        price: 199,
-        content: '优衣库纯棉衬衫，L码',
-        photo: '',
-        status: 'onsale',
-        publishtime: '2023-05-12T12:15:00Z',
-        category: 'clothing',
-      },
-    ]
+    let allProducts: Product[] = []
+    try {
+      const response = await getProductsBySeller(userStore.userInfo.userid)
+      console.log(response)
+      allProducts = response.data.data || []
+    } catch (apiError) {
+      console.error('API调用失败:', apiError)
+      ElMessage.error('获取商品数据失败')
+      // 使用空数组作为默认值
+      allProducts = []
+    }
 
     // 设置总商品数
     totalProducts.value = allProducts.length
@@ -552,8 +461,8 @@ const fetchProducts = async () => {
     const end = start + pageSize.value
     productList.value = allProducts.slice(start, end)
   } catch (error) {
-    ElMessage.error('获取商品列表失败')
-    console.error(error)
+    ElMessage.error('处理商品列表时发生错误')
+    console.error('处理商品列表错误:', error)
   } finally {
     loading.value = false
   }
@@ -571,7 +480,7 @@ const openProductDialog = (product: Product | null = null) => {
       price: 0,
       content: '',
       category: '',
-      status: 'onsale',
+      status: 'ON_SALE',
     })
   }
   productDialogVisible.value = true
@@ -585,7 +494,7 @@ const editProduct = (product: Product) => {
 // 切换商品状态
 const toggleProductStatus = (product: Product) => {
   ElMessageBox.confirm(
-    `确定要${product.status === 'onsale' ? '下架' : '上架'} "${product.title}" 吗？`,
+    `确定要${product.status === 'ON_SALE' ? '下架' : '上架'} "${product.title}" 吗？`,
     '确认操作',
     {
       confirmButtonText: '确定',
@@ -595,10 +504,11 @@ const toggleProductStatus = (product: Product) => {
   ).then(async () => {
     try {
       // 调用API更新商品状态
-      // await api.updateProductStatus(product.id, product.status === 'onsale' ? 'sold' : 'onsale')
-
+      await updateProduct(product.productid, {
+        status: product.status === 'ON_SALE' ? 'SOLD' : 'ON_SALE',
+      })
       // 更新本地数据
-      product.status = product.status === 'onsale' ? 'sold' : 'onsale'
+      product.status = product.status === 'ON_SALE' ? 'SOLD' : 'ON_SALE'
       ElMessage.success('操作成功')
     } catch (error) {
       ElMessage.error('操作失败')
@@ -615,8 +525,7 @@ const deleteProduct = (product: Product) => {
   }).then(async () => {
     try {
       // 调用API删除商品
-      // await api.deleteProduct(product.id)
-
+      await apiDeleteProduct(product.productid)
       // 更新本地数据
       productList.value = productList.value.filter((item) => item.productid !== product.productid)
       // 也需要更新总数量
@@ -638,6 +547,9 @@ const saveProduct = async () => {
       try {
         if (currentProduct.productid) {
           // 编辑商品 - 更新现有商品
+          await updateProduct(currentProduct.productid, {
+            price: currentProduct.price,
+          })
           ElMessage.success('商品更新成功')
         }
 
@@ -649,10 +561,10 @@ const saveProduct = async () => {
           price: 0,
           content: '',
           category: '',
-          status: 'onsale',
+          status: 'ON_SALE',
         })
         //重新获取商品列表
-        /* fetchProductData() */
+        fetchProducts()
       } catch (error) {
         ElMessage.error('操作失败')
         console.error(error)
@@ -706,6 +618,12 @@ const resetPasswordForm = () => {
 const handlePageChange = (page: number) => {
   currentPage.value = page
   fetchProducts()
+}
+
+// 格式化价格，强制保留两位小数
+const formatPrice = (price: number): string => {
+  // 处理可能的浮点数精度问题
+  return (Math.round(price * 100) / 100).toFixed(2)
 }
 
 onMounted(() => {
@@ -806,5 +724,56 @@ onMounted(() => {
   .pagination {
     justify-content: center;
   }
+}
+
+.product-edit-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: 20px 20px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.product-edit-form {
+  padding: 20px;
+}
+
+.form-input {
+  width: 100%;
+}
+
+.price-input {
+  width: 150px;
+}
+
+.dialog-footer {
+  padding: 10px 20px 20px;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.dialog-footer .el-button {
+  margin-left: 10px;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #666;
+}
+
+:deep(.el-textarea__inner) {
+  resize: none;
 }
 </style>
