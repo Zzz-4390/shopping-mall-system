@@ -86,9 +86,9 @@ const handleLogin = async () => {
           phone: loginForm.phone,
           password: loginForm.password,
         })
-        console.log(res)
         if (res.data.code === 200) {
           ElMessage.success('登录成功')
+          console.log('登录成功:', res.data.data)
           userStore.setUserInfo(res.data.data)
           router.push('/')
         } else {

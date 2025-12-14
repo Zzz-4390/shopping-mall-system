@@ -9,38 +9,33 @@
             <template #default="scope">
               <div class="product-info">
                 <el-image
-                  :src="scope.row.product.image"
+                  :src="scope.row.product_photo || ''"
                   class="product-image"
                   fit="cover"
-                  :preview-src-list="[scope.row.product.image]"
+                  :preview-src-list="[scope.row.product_photo || '']"
                   hide-on-click-modal
                 />
                 <div class="product-details">
-                  <div class="product-name">{{ scope.row.product.name }}</div>
-                  <div class="product-spec">{{ scope.row.specification }}</div>
+                  <div class="product-name">{{ scope.row.product_title }}</div>
+                  <div class="product-spec">{{ scope.row.product_content }}</div>
                 </div>
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column prop="product.price" label="单价" width="150">
-            <template #default="scope"> ¥{{ scope.row.product.price.toFixed(2) }} </template>
+          <el-table-column label="单价" width="150">
+            <template #default="scope"> ¥{{ scope.row.product_price?.toFixed(2) }} </template>
           </el-table-column>
 
           <el-table-column label="数量" width="200">
             <template #default="scope">
-              <el-input-number
-                v-model="scope.row.quantity"
-                :min="1"
-                :max="scope.row.product.stock"
-                @change="handleQuantityChange(scope.row)"
-              />
+              <el-input-number v-model="scope.row.quantity" :min="1" readonly />
             </template>
           </el-table-column>
 
           <el-table-column label="小计" width="150">
             <template #default="scope">
-              ¥{{ (scope.row.product.price * scope.row.quantity).toFixed(2) }}
+              ¥{{ (scope.row.product_price * (scope.row.quantity || 1)).toFixed(2) }}
             </template>
           </el-table-column>
 
@@ -73,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ElTable,
@@ -86,73 +81,59 @@ import {
   ElMessage,
   ElPageHeader,
 } from 'element-plus'
+import { getCartItems, deleteCartItem } from '@/apis'
+import { useUserStore } from '@/stores/user'
+import type { CartItemDetail } from '@/types'
 
-interface Product {
-  id: number
-  name: string
-  price: number
-  image: string
-  stock: number
-}
-
-interface CartItem {
-  id: number
-  product: Product
-  specification: string
+// 扩展 CartItemDetail 类型以包含 quantity 字段
+interface CartItemWithQuantity extends CartItemDetail {
   quantity: number
 }
 
-// 模拟购物车数据
-const cartItems = ref<CartItem[]>([
-  {
-    id: 1,
-    product: {
-      id: 101,
-      name: '无线蓝牙耳机',
-      price: 299.0,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop',
-      stock: 50,
-    },
-    specification: '黑色款',
-    quantity: 1,
-  },
-  {
-    id: 2,
-    product: {
-      id: 102,
-      name: '智能手表',
-      price: 1299.0,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop',
-      stock: 30,
-    },
-    specification: '银色 42mm',
-    quantity: 1,
-  },
-  {
-    id: 3,
-    product: {
-      id: 103,
-      name: '移动电源',
-      price: 199.0,
-      image: 'https://images.unsplash.com/photo-1603002804671-603a59b0eb63?w=200&h=200&fit=crop',
-      stock: 100,
-    },
-    specification: '20000mAh 白色',
-    quantity: 2,
-  },
-])
+const userStore = useUserStore()
+
+onMounted(() => {
+  getCart()
+})
+
+// 使用正确的类型
+const cartItems = ref<CartItemWithQuantity[]>([])
 
 const router = useRouter()
 
 // 计算总数量
 const totalItems = computed(() => {
-  return cartItems.value.reduce((total, item) => total + item.quantity, 0)
+  return cartItems.value.reduce((total, item) => total + (item.quantity || 1), 0)
 })
 
 // 计算总价
 const totalPrice = computed(() => {
-  return cartItems.value.reduce((total, item) => total + item.product.price * item.quantity, 0)
+  return cartItems.value.reduce(
+    (total, item) => total + (item.product_price || 0) * (item.quantity || 1),
+    0,
+  )
 })
+
+// 获取购物车数据
+const getCart = async () => {
+  const cartid = userStore.cartid
+  if (!cartid) {
+    ElMessage.error('未获取到购物车ID')
+    return
+  }
+  try {
+    const res = await getCartItems(cartid)
+    // 显式指定类型
+    cartItems.value = (res.data.data as CartItemDetail[]).map((item) => ({
+      ...item,
+      quantity: 1,
+    }))
+    console.log(res)
+  } catch (error) {
+    ElMessage.error('获取购物车数据失败')
+    console.error(error)
+  }
+}
 
 // 返回上一页
 const goBack = () => {
@@ -161,29 +142,31 @@ const goBack = () => {
 
 // 去购物
 const goShopping = () => {
-  router.push('/products')
-}
-
-// 数量变化处理
-const handleQuantityChange = (item: CartItem) => {
-  if (item.quantity > item.product.stock) {
-    ElMessage.warning('购买数量不能超过库存')
-    item.quantity = item.product.stock
-  }
+  router.push('/')
 }
 
 // 删除商品
-const removeItem = (item: CartItem) => {
-  ElMessageBox.confirm(`确定要删除 ${item.product.name} 吗？`, '确认删除', {
+const removeItem = (item: CartItemWithQuantity) => {
+  ElMessageBox.confirm(`确定要删除 ${item.product_title} 吗？`, '确认删除', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
-      const index = cartItems.value.findIndex((i) => i.id === item.id)
-      if (index !== -1) {
-        cartItems.value.splice(index, 1)
+    .then(async () => {
+      try {
+        // 调用API删除购物车项，传入cartitemid
+        await deleteCartItem(item.cartitemid)
+
+        // 从本地数组中移除该项
+        const index = cartItems.value.findIndex((i) => i.cartitemid === item.cartitemid)
+        if (index !== -1) {
+          cartItems.value.splice(index, 1)
+        }
+        await userStore.fetchCartItems()
         ElMessage.success('删除成功')
+      } catch (error) {
+        ElMessage.error('删除失败')
+        console.error(error)
       }
     })
     .catch(() => {
@@ -198,9 +181,16 @@ const clearCart = () => {
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
-      cartItems.value = []
-      ElMessage.success('购物车已清空')
+    .then(async () => {
+      try {
+        await userStore.clearCartItems()
+        // 重新获取购物车数据
+        await getCart()
+        ElMessage.success('购物车已清空')
+      } catch (error) {
+        ElMessage.error('清空购物车失败')
+        console.error(error)
+      }
     })
     .catch(() => {
       // 用户取消清空
@@ -219,6 +209,7 @@ const checkout = () => {
 </script>
 
 <style scoped>
+/* 样式部分保持不变 */
 .cart-page {
   padding: 20px 0;
   min-height: calc(100vh - 120px);

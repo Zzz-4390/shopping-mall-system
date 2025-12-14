@@ -1,8 +1,19 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { getCartItems, deleteCartItem } from '@/apis'
+import type { CartItemDetail } from '@/types'
 import type { User } from '@/types'
 import { getUser } from '@/apis/user'
+
+// 扩展 CartItemDetail 类型以包含 quantity 字段
+interface CartItemWithQuantity extends CartItemDetail {
+  quantity: number
+}
+
+const cartItems = ref<CartItemWithQuantity[]>([])
+
+// 购物车数量
+const cartCount = computed(() => cartItems.value.length)
 
 export const useUserStore = defineStore('user', () => {
   // 用户信息状态
@@ -19,8 +30,23 @@ export const useUserStore = defineStore('user', () => {
   // 是否已登录，基于内存中的 userInfo
   const isLoggedIn = computed(() => !!userInfo.value.userid)
 
-  // 购物车数量
-  const cartCount = computed(() => userInfo.value.cart?.length || 0)
+  // 获取购物车数据
+  const fetchCartItems = async () => {
+    if (!cartid.value) return
+
+    try {
+      const res = await getCartItems(cartid.value)
+      cartItems.value = (res.data.data as CartItemDetail[]).map((item) => ({
+        ...item,
+        quantity: 1,
+      }))
+    } catch (error) {
+      console.error('获取购物车数据失败:', error)
+    }
+  }
+
+  //购物车id
+  const cartid = computed(() => userInfo.value.cart?.[0]?.cartid)
   // 设置用户信息
   const setUserInfo = (info: Partial<User>) => {
     userInfo.value = {
@@ -94,12 +120,34 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 清空购物车
+  const clearCartItems = async () => {
+    try {
+      // 遍历所有购物车项目并逐个删除
+      const deletePromises = cartItems.value.map((item) =>
+        deleteCartItem(item.cartitemid.toString()),
+      )
+
+      // 等待所有删除操作完成
+      await Promise.all(deletePromises)
+
+      // 清空本地购物车状态
+      cartItems.value = []
+    } catch (error) {
+      console.error('清空购物车失败:', error)
+      throw error
+    }
+  }
   return {
     userInfo,
     isLoggedIn,
     cartCount,
+    cartid,
+    cartItems,
+    fetchCartItems,
     setUserInfo,
     clearUserInfo,
     restoreUserInfo,
+    clearCartItems,
   }
 })

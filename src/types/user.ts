@@ -37,7 +37,7 @@ export type User = {
   cart?: import('./cart').Cart[]
 }
 
-export type ApiResult<T = unknown> = {
+export type ApiResult<T> = {
   code: number
   message: string
   data?: T

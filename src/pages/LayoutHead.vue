@@ -62,20 +62,21 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { User, ShoppingCart, Search } from '@element-plus/icons-vue'
 import type { TabsPaneContext } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
-
 const searchInput = ref('')
 const activeName = ref('first')
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const cartCount = userStore.cartCount // 购物车商品数量
+const cartCount = computed(() => {
+  return userStore.isLoggedIn ? userStore.cartCount : 0
+})
 
 //获取当前tab高亮
 const getActiveName = () => {
@@ -99,9 +100,25 @@ const getActiveName = () => {
   }
 }
 
-onMounted(() => {
+// 在组件挂载时获取购物车数据
+onMounted(async () => {
   getActiveName()
+
+  // 如果用户已登录，则获取购物车数据
+  if (userStore.isLoggedIn) {
+    await userStore.fetchCartItems()
+  }
 })
+
+// 监听用户登录状态变化，如果登录则获取购物车数据
+watch(
+  () => userStore.isLoggedIn,
+  async (isLoggedIn) => {
+    if (isLoggedIn) {
+      await userStore.fetchCartItems()
+    }
+  },
+)
 
 // 监听路由变化（包含前进/后退），同步 tab 高亮
 watch(

@@ -23,8 +23,7 @@ export const updateProduct = (
 ): Promise<ApiResult<Product>> => request.put(`${baseURL}/update/${productid}`, body)
 
 // 根据商品ID获取商品详情
-export const getProductById = (productid: string): Promise<ApiResult<Product>> =>
-  request.get(`${baseURL}/get/${productid}`)
+export const getProductById = (productid: string) => request.get(`${baseURL}/get/${productid}`)
 
 // 根据卖家ID获取商品列表
 export const getProductsBySeller = (

@@ -1,5 +1,5 @@
 // src/router/index.ts
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '@/pages/HomePage.vue'
 import Login from '@/pages/LoginPage.vue'
 import Register from '@/pages/RegisterPage.vue'
@@ -9,7 +9,8 @@ import Cart from '@/pages/CartPage.vue'
 import ProductDetail from '@/pages/ProductDetail.vue'
 import ProductPublish from '@/pages/ProductPublish.vue'
 import LayoutWrapper from '@/pages/LayoutWrapper.vue'
-
+import PaymentPage from '@/pages/PaymentPage.vue'
+import PaymentSuccess from '@/pages/PaymentSuccess.vue'
 const routes = [
   {
     path: '',
@@ -43,6 +44,16 @@ const routes = [
         path: '/publish',
         component: ProductPublish,
       },
+      {
+        path: '/payment/:sellerid/:productid/:quantity',
+        name: 'PaymentPage',
+        component: PaymentPage,
+      },
+      {
+        path: '/payment-success',
+        name: 'PaymentSuccess',
+        component: PaymentSuccess,
+      },
     ],
   },
   {
@@ -56,7 +67,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 

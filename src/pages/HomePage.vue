@@ -437,9 +437,8 @@ onMounted(() => {
 // 获取所有商品数据
 const fetchAllProducts = async () => {
   try {
+    const virtualProducts = ref<Product[]>([])
     const res = await getAllProducts()
-    console.log(res)
-
     // 支持不同的后端返回封装：
     // - 如果 API 返回 ApiResult<Product[]>（{ code, message, data })：直接用 res.code/res.data
     // - 如果 API 返回 AxiosResponse<ApiResult<Product[]>>：则为 res.data.code/res.data.data
@@ -447,12 +446,16 @@ const fetchAllProducts = async () => {
     if (r && typeof r === 'object' && 'code' in r) {
       // res 是 ApiResult<Product[]>
       const api = r as { code?: number; data?: Product[] }
-      products.value = api.code === 200 ? api.data || [] : []
+      virtualProducts.value = api.code === 200 ? api.data || [] : []
+      console.log(virtualProducts, virtualProducts.value)
+      products.value = virtualProducts.value.filter((p) => p.status === 'ON_SALE')
+      console.log(products, products.value)
     } else if (r && typeof r === 'object' && 'data' in r) {
       // res 可能是 AxiosResponse<ApiResult<Product[]>>
       const apiContainer = r as { data?: { code?: number; data?: Product[] } }
       const api = apiContainer.data
-      products.value = api?.code === 200 ? api.data || [] : []
+      virtualProducts.value = api?.code === 200 ? api.data || [] : []
+      products.value = virtualProducts.value.filter((p) => p.status === 'ON_SALE')
     } else if (Array.isArray(res)) {
       // 直接返回数组的情况
       products.value = res

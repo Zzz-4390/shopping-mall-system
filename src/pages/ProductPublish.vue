@@ -250,7 +250,6 @@ const submitProduct = async () => {
     if (fileToUpload) {
       formData.append('file', fileToUpload)
     }
-    console.log('formData:', formData)
     const res = await request.post('/product/add', formData)
     if (res?.data?.code === 200) {
       ElMessage.success('商品发布成功！')

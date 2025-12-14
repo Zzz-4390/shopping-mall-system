@@ -4,7 +4,7 @@
     <div class="tb-breadcrumb">
       <el-breadcrumb separator=">">
         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item>{{ product.category }}</el-breadcrumb-item>
+        <el-breadcrumb-item>{{ getCategoryLabel(product.category) }}</el-breadcrumb-item>
         <el-breadcrumb-item>商品详情</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
@@ -54,13 +54,13 @@
               product.status === 'published' ? 'tb-status-on' : 'tb-status-off',
             ]"
           >
-            {{ product.status === 'published' ? '在售' : '已下架' }}
+            {{ product.status === 'ON_SALE' ? '在售' : '已下架' }}
           </span>
         </div>
 
         <div class="tb-product-category">
           <span class="tb-category-label">分类</span>
-          <span class="tb-category">{{ product.category }}</span>
+          <span class="tb-category">{{ getCategoryLabel(product.category) }}</span>
         </div>
 
         <div class="tb-product-description">
@@ -71,11 +71,10 @@
         <div class="tb-product-quantity">
           <span class="tb-quantity-label">数量</span>
           <div class="tb-quantity-control">
-            <el-input-number v-model="quantity" :min="1" :max="99" size="default" />
+            <el-input-number v-model="quantity" :min="1" :max="1" size="default" disabled />
             <span class="tb-quantity-unit">件</span>
           </div>
         </div>
-
         <div class="tb-action-buttons">
           <el-button type="primary" size="large" class="tb-add-cart" @click="addToCart">
             <i class="el-icon-shopping-cart-1"></i>
@@ -92,25 +91,27 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { getProductById, addCartItem } from '@/apis'
 import type { Product } from '@/types/product'
-
+const userStore = useUserStore()
 // 获取路由参数
 const route = useRoute()
-
+const router = useRouter()
 const quantity = ref(1)
 // 商品数据
 const product = ref<Product>({
   productid: '',
   sellerid: '',
-  title: '商品加载中...',
-  content: '<p>商品详情加载中...</p>',
+  title: '',
+  content: '',
   price: 0,
-  photo: 'https://via.placeholder.com/400x400?text=Loading',
+  photo: '',
   status: '',
   publishtime: '',
-  category: '加载中...',
+  category: '',
 })
 
 // 获取商品数据
@@ -119,37 +120,64 @@ const fetchProductData = async () => {
     // 获取路由中的商品ID
     const productId = route.params.id
 
-    // 模拟API请求，实际项目中应替换为真实的API调用
-    await new Promise((resolve) => setTimeout(resolve, 600))
-
-    // 模拟返回数据（实际应根据productId请求对应商品数据）
-    product.value = {
-      productid: productId as string,
-      sellerid: 'seller_001',
-      title: '小米 Redmi Note 12 Pro 5G手机 第二代骁龙®️ 旗舰处理器 银河紫 8+256GB',
-      content: '第二代骁龙®️ 旗舰处理器，性能强劲',
-      price: 1999.0,
-      photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-      status: 'published',
-      publishtime: new Date().toISOString(),
-      category: '手机/数码/手机通讯/智能手机',
+    // 类型检查：确保是字符串
+    if (!productId || Array.isArray(productId)) {
+      ElMessage.error('商品ID无效')
+      return
     }
+    const res = await getProductById(productId)
+    product.value = res.data.data
   } catch (error) {
     ElMessage.error('获取商品信息失败')
     console.error('获取商品信息失败:', error)
   }
 }
 
+// 商品分类映射
+const categoryMap: Record<string, string> = {
+  electronics: '电子产品',
+  clothing: '服装',
+  books: '图书',
+  home: '家居',
+  other: '其他',
+}
+
+// 获取分类中文名称
+const getCategoryLabel = (value: string) => {
+  return categoryMap[value] || value
+}
 // 加入购物车
-const addToCart = () => {
-  ElMessage.success('商品已加入购物车')
-  // 实际项目中应调用加入购物车接口
+const addToCart = async () => {
+  const userid = userStore.userInfo?.userid
+  const cartid = userStore.cartid
+
+  // 添加非空校验
+  if (!userid) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  if (!cartid) {
+    ElMessage.warning('购物车未初始化，请稍后重试')
+    return
+  }
+
+  try {
+    await addCartItem(cartid, {
+      productid: product.value.productid,
+    })
+    await userStore.fetchCartItems()
+    ElMessage.success('商品已加入购物车')
+  } catch (error) {
+    ElMessage.error('加入购物车失败')
+    console.error('完整错误信息:', error)
+  }
 }
 
 // 立即购买
 const buyNow = () => {
   ElMessage.success('正在前往订单确认页面')
-  // 实际项目中应跳转到订单确认页面
+  router.push(`/payment/${product.value.sellerid}/${product.value.productid}/${quantity.value}`)
 }
 
 onMounted(() => {

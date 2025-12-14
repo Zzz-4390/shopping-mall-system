@@ -310,7 +310,10 @@ const rules = {
 // 商品验证规则
 const productRules = {
   title: [{ message: '请输入商品名称', trigger: 'blur' }],
-  price: [{ required: true, message: '请输入价格', trigger: 'blur' }],
+  price: [
+    { required: true, message: '请输入价格', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' },
+  ],
   category: [{ message: '请选择分类', trigger: 'change' }],
 }
 
