@@ -29,7 +29,6 @@ CREATE TABLE `message` (
     `title` VARCHAR(50) NOT NULL,
     `isread` BOOLEAN NOT NULL DEFAULT false,
     `sendtime` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `conversationid` CHAR(36) NOT NULL,
 
     INDEX `receiverid`(`receiverid`),
     INDEX `senderid`(`senderid`),
@@ -59,10 +58,10 @@ CREATE TABLE `product` (
     `title` VARCHAR(50) NOT NULL,
     `content` VARCHAR(1000) NOT NULL,
     `price` INTEGER NOT NULL,
-    `photo` VARCHAR(500) NULL,
-    `status` CHAR(20) NOT NULL,
+    `photo` MEDIUMBLOB NULL,
+    `status` CHAR(10) NOT NULL,
     `publishtime` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `category` CHAR(20) NOT NULL,
+    `category` CHAR(10) NOT NULL,
 
     INDEX `sellerid`(`sellerid`),
     PRIMARY KEY (`productid`)
