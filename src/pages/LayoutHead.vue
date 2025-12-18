@@ -10,9 +10,16 @@
 
       <!-- 搜索框 -->
       <div class="search-wrapper">
-        <el-input v-model="searchInput" placeholder="请输入搜索内容" clearable>
+        <el-input
+          v-model="searchInput"
+          placeholder="请输入搜索内容"
+          clearable
+          @keyup.enter="handleSearch"
+        >
           <template #suffix>
-            <Search class="icon-search" style="width: 1em; height: 1em; margin-right: 6px" />
+            <el-button type="primary" link @click="handleSearch">
+              <Search class="icon-search" style="width: 1em; height: 1em; margin-right: 6px" />
+            </el-button>
           </template>
         </el-input>
       </div>
@@ -144,6 +151,12 @@ const handleClick = (tab: TabsPaneContext) => {
       router.push('/publish')
       break
   }
+}
+
+const handleSearch = () => {
+  const key = searchInput.value.trim()
+  router.push({ path: '/search', query: { key } })
+  searchInput.value = ''
 }
 
 // 处理用户下拉菜单命令

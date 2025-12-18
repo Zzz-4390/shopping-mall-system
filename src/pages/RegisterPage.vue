@@ -138,8 +138,7 @@ const handleRegister = async () => {
           password: registerForm.password,
         }
         loading.value = true
-        const res = await userRegister(requestData)
-        console.log(res)
+        await userRegister(requestData)
         ElMessage.success('注册成功！')
         router.push('/login')
       } catch (error: unknown) {

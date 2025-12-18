@@ -447,7 +447,6 @@ const fetchProducts = async () => {
     let allProducts: Product[] = []
     try {
       const response = await getProductsBySeller(userStore.userInfo.userid)
-      console.log(response)
       allProducts = response.data.data || []
     } catch (apiError) {
       console.error('API调用失败:', apiError)

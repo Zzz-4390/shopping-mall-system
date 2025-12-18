@@ -4,7 +4,15 @@
       <el-page-header title="继续购物" content="购物车" @back="goBack" class="page-header" />
 
       <div class="cart-content" v-if="cartItems.length > 0">
-        <el-table :data="cartItems" :style="{ width: '100%' }" class="cart-table">
+        <el-table
+          ref="tableRef"
+          :data="cartItems"
+          :style="{ width: '100%' }"
+          class="cart-table"
+          row-key="cartitemid"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="55" />
           <el-table-column label="商品信息">
             <template #default="scope">
               <div class="product-info">
@@ -68,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ElTable,
@@ -98,21 +106,28 @@ onMounted(() => {
 
 // 使用正确的类型
 const cartItems = ref<CartItemWithQuantity[]>([])
+const selectedItems = ref<CartItemWithQuantity[]>([])
+const tableRef = ref<InstanceType<typeof ElTable> | null>(null)
 
 const router = useRouter()
 
-// 计算总数量
+// 计算总数量（仅已选）
 const totalItems = computed(() => {
-  return cartItems.value.reduce((total, item) => total + (item.quantity || 1), 0)
+  return selectedItems.value.reduce((total, item) => total + (item.quantity || 1), 0)
 })
 
-// 计算总价
+// 计算总价（仅已选）
 const totalPrice = computed(() => {
-  return cartItems.value.reduce(
+  return selectedItems.value.reduce(
     (total, item) => total + (item.product_price || 0) * (item.quantity || 1),
     0,
   )
 })
+
+// 监听表格选择
+const handleSelectionChange = (rows: CartItemWithQuantity[]) => {
+  selectedItems.value = rows
+}
 
 // 获取购物车数据
 const getCart = async () => {
@@ -128,7 +143,9 @@ const getCart = async () => {
       ...item,
       quantity: 1,
     }))
-    console.log(res)
+    selectedItems.value = [...cartItems.value]
+    await nextTick()
+    tableRef.value?.toggleAllSelection?.()
   } catch (error) {
     ElMessage.error('获取购物车数据失败')
     console.error(error)
@@ -162,6 +179,7 @@ const removeItem = (item: CartItemWithQuantity) => {
         if (index !== -1) {
           cartItems.value.splice(index, 1)
         }
+        selectedItems.value = selectedItems.value.filter((i) => i.cartitemid !== item.cartitemid)
         await userStore.fetchCartItems()
         ElMessage.success('删除成功')
       } catch (error) {
@@ -197,14 +215,18 @@ const clearCart = () => {
     })
 }
 
-// 去结算
+// 去结算：跳转到支付页并在支付页加载购物车
 const checkout = () => {
-  ElMessageBox.alert(`即将前往结算页面，应付金额: ¥${totalPrice.value.toFixed(2)}`, '提示', {
-    confirmButtonText: '确定',
-    type: 'info',
-  }).then(() => {
-    router.push('/checkout')
-  })
+  if (!cartItems.value.length) {
+    ElMessage.warning('购物车为空')
+    return
+  }
+  if (!selectedItems.value.length) {
+    ElMessage.warning('请先选择要结算的商品')
+    return
+  }
+  const selectedIds = selectedItems.value.map((i) => i.productid).filter(Boolean)
+  router.push({ path: '/payment', query: { selected: selectedIds.join(',') } })
 }
 </script>
 

@@ -3,7 +3,6 @@
     <div class="success-container">
       <el-result icon="success" title="支付成功" sub-title="您的订单已支付成功，我们将尽快为您发货">
         <template #extra>
-          <el-button type="primary" @click="viewOrder">查看订单</el-button>
           <el-button @click="continueShopping">继续购物</el-button>
         </template>
       </el-result>
@@ -15,11 +14,6 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-
-const viewOrder = () => {
-  // 跳转到订单详情页
-  router.push('/orders')
-}
 
 const continueShopping = () => {
   // 返回首页继续购物

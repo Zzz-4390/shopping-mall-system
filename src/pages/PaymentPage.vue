@@ -7,7 +7,8 @@
         <h2>确认订单信息</h2>
 
         <div class="order-summary">
-          <div class="order-item" v-if="productInfo">
+          <!-- 单件模式 -->
+          <div class="order-item" v-if="!isCartMode && productInfo">
             <div class="item-image">
               <img :src="productInfo.photo" :alt="productInfo.title" />
             </div>
@@ -17,13 +18,22 @@
             </div>
             <div class="item-total">¥{{ (productInfo.price * quantity).toFixed(2) }}</div>
           </div>
+          <!-- 购物车模式 -->
+          <div class="order-item" v-else v-for="it in cartPayItems" :key="it.productid">
+            <div class="item-image">
+              <img :src="it.photo" :alt="it.title" />
+            </div>
+            <div class="item-details">
+              <div class="item-name">{{ it.title }}</div>
+              <div class="item-price">¥{{ it.price }} × {{ it.quantity }}</div>
+            </div>
+            <div class="item-total">¥{{ (it.price * it.quantity).toFixed(2) }}</div>
+          </div>
         </div>
 
         <div class="order-total">
           <div class="total-label">应付总额:</div>
-          <div class="total-amount" v-if="productInfo">
-            ¥{{ (productInfo.price * quantity).toFixed(2) }}
-          </div>
+          <div class="total-amount">¥{{ totalAmount.toFixed(2) }}</div>
         </div>
 
         <div class="payment-methods">
@@ -49,7 +59,7 @@
             size="large"
             @click="handlePayment"
             :loading="isPaying"
-            :disabled="!productInfo"
+            :disabled="isCartMode ? cartPayItems.length === 0 : !productInfo"
           >
             确认支付
           </el-button>
@@ -60,10 +70,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getProductById } from '@/apis/product'
+import { getCartItems } from '@/apis/cart'
+import { createOrder, completeOrder } from '@/apis'
+import { useUserStore } from '@/stores/user'
+import type { CartItemDetail } from '@/types'
 
 interface Product {
   productid: string
@@ -87,20 +101,40 @@ const isPaying = ref(false)
 // 支付方式
 const paymentMethod = ref('balance')
 
-// 商品数量
+// 商品数量（单件）
 const quantity = ref(Number(route.params.quantity) || 1)
 
-// 商品信息
+// 商品信息（单件）
 const productInfo = ref<Product | null>(null)
+
+// 购物车模式判断
+const isCartMode = computed(() => !route.params.productid)
+
+// 选择的商品ID（逗号分隔）
+const selectedIds = computed(() => {
+  const raw = route.query.selected as string | undefined
+  return raw ? raw.split(',').filter(Boolean) : []
+})
+
+// 购物车商品（多件）
+type CartPayItem = {
+  productid: string
+  sellerid: string
+  title: string
+  price: number
+  photo: string
+  quantity: number
+}
+const cartPayItems = ref<CartPayItem[]>([])
+const userStore = useUserStore()
 
 // 返回上一页
 const goBack = () => {
   router.go(-1)
 }
 
-// 获取商品信息
+// 获取商品信息（单件）
 const fetchProductInfo = async () => {
-  console.log(quantity)
   try {
     const productId = route.params.productid as string
     if (productId) {
@@ -113,39 +147,115 @@ const fetchProductInfo = async () => {
   }
 }
 
+// 获取购物车商品（多件）
+const fetchCartForPayment = async () => {
+  try {
+    const cartid = userStore.cartid
+    if (!cartid) throw new Error('未获取到购物车ID')
+    const res = await getCartItems(cartid)
+    const rows = (res?.data?.data || []) as CartItemDetail[]
+    const filtered = selectedIds.value.length
+      ? rows.filter((r) => selectedIds.value.includes(r.productid))
+      : rows
+    cartPayItems.value = filtered.map((r) => ({
+      productid: r.productid,
+      sellerid: String(r.product_sellerid || ''),
+      title: r.product_title || '',
+      price: r.product_price || 0,
+      photo: r.product_photo || '',
+      quantity: 1,
+    }))
+    if (!cartPayItems.value.length) {
+      ElMessage.warning('未找到要结算的商品')
+    }
+  } catch (error) {
+    ElMessage.error('获取购物车商品失败')
+    console.error(error)
+  }
+}
+
+// 合计
+const totalAmount = computed(() => {
+  if (isCartMode.value) {
+    return cartPayItems.value.reduce((sum, it) => sum + it.price * it.quantity, 0)
+  }
+  return productInfo.value ? productInfo.value.price * quantity.value : 0
+})
+
 // 处理支付
-const handlePayment = () => {
+const handlePayment = async () => {
   if (paymentMethod.value !== 'balance') {
     ElMessage.warning('目前仅支持账户余额支付')
     return
   }
 
-  if (!productInfo.value) {
-    ElMessage.warning('商品信息加载中，请稍候...')
-    return
-  }
-
   isPaying.value = true
+  try {
+    const buyerid = userStore.userInfo.userid
+    if (!buyerid) throw new Error('未登录或缺少用户信息')
 
-  // 模拟支付过程
-  setTimeout(() => {
+    if (isCartMode.value) {
+      // 多件：逐件下单并完成
+      const created: Array<{ orderid?: string }> = []
+      for (const it of cartPayItems.value) {
+        if (!it.sellerid || !it.productid) continue
+        const res = await createOrder(buyerid, {
+          sellerid: it.sellerid,
+          productid: it.productid,
+        })
+        if (res.data?.code !== 200) throw new Error(res.data?.message || '下单失败')
+        created.push({ orderid: res.data?.data?.orderid })
+      }
+      for (const o of created) {
+        if (!o.orderid) continue
+        const payRes = await completeOrder(o.orderid)
+        if (payRes.data?.code !== 200) throw new Error(payRes.data?.message || '支付失败')
+      }
+      ElMessage.success('支付成功！')
+      try {
+        await userStore.clearCartItems?.()
+      } catch {}
+      router.push({ path: '/payment-success' })
+    } else {
+      // 单件
+      if (!productInfo.value) {
+        ElMessage.warning('商品信息加载中，请稍候...')
+        return
+      }
+      const sellerid = String(route.params.sellerid || productInfo.value.sellerid)
+      const productid = String(route.params.productid || productInfo.value.productid)
+      const res = await createOrder(buyerid, { sellerid, productid })
+      if (res.data?.code !== 200) throw new Error(res.data?.message || '下单失败')
+      const orderid = res.data?.data?.orderid
+      if (orderid) {
+        const payRes = await completeOrder(orderid)
+        if (payRes.data?.code !== 200) throw new Error(payRes.data?.message || '支付失败')
+      }
+      ElMessage.success('支付成功！')
+      router.push({
+        path: '/payment-success',
+        query: {
+          sellerid,
+          productid,
+          quantity: String(quantity.value),
+        },
+      })
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '支付失败，请稍后重试'
+    ElMessage.error(msg)
+  } finally {
     isPaying.value = false
-    ElMessage.success('支付成功！')
-    // 跳转到支付成功页面，携带订单信息
-    router.push({
-      path: '/payment-success',
-      query: {
-        sellerid: route.params.sellerid,
-        productid: route.params.productid,
-        quantity: route.params.quantity,
-      },
-    })
-  }, 1200)
+  }
 }
 
 // 页面加载时获取商品信息
 onMounted(() => {
-  fetchProductInfo()
+  if (isCartMode.value) {
+    fetchCartForPayment()
+  } else {
+    fetchProductInfo()
+  }
 })
 </script>
 

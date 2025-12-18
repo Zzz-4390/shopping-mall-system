@@ -8,9 +8,16 @@
           v-for="category in categories"
           :key="category.id"
           class="category-item"
-          @click="router.push('/product/' + category.id)"
+          @click="router.push('/category/' + category.id)"
         >
-          <el-icon class="category-icon"><component :is="category.icon"></component></el-icon>
+          <el-icon class="category-icon">
+            <Monitor v-if="category.id === 'electronics'" />
+            <Goods v-else-if="category.id === 'clothing'" />
+            <Reading v-else-if="category.id === 'books'" />
+            <House v-else-if="category.id === 'home'" />
+            <Basketball v-else-if="category.id === 'sports'" />
+            <Star v-else />
+          </el-icon>
           <span class="category-name">{{ category.name }}</span>
         </li>
       </ul>
@@ -27,11 +34,11 @@
         @mouseleave="handleCarouselHover(false)"
         :class="{ 'carousel-hover': isCarouselHovered }"
       >
-        <el-carousel-item v-for="(slide, index) in carouselSlides" :key="index">
+        <el-carousel-item v-for="(slide, index) in carouselSlides" :key="slide.categoryId || index">
           <img
             :src="slide.image"
             class="carousel-image"
-            @click="router.push('/product/' + slide.id)"
+            @click="router.push('/category/' + slide.categoryId)"
           />
           <div class="home-ad-banner-item-content-container" style="color: rgb(250, 255, 255)">
             <div class="home-ad-banner-item-title-top">{{ slide.description?.[0] }}</div>
@@ -42,22 +49,16 @@
       </el-carousel>
     </div>
 
-    <!-- 右侧推荐区 -->
-    <div class="category-section section">
-      <h3 class="category-title">推荐活动</h3>
-      <ul class="category-list">
-        <li
-          v-for="promo in promotions"
-          :key="promo.id"
-          class="category-item"
-          @click="router.push('/product/' + promo.id)"
-        >
-          <el-icon class="category-icon"
-            ><component :is="promo.icon || 'Star'"></component
-          ></el-icon>
-          <span class="category-name">{{ promo.title }}</span>
-        </li>
-      </ul>
+    <!-- 右侧活动位-->
+    <div class="promo-section section" @click="router.push('/category/' + promoBanner.categoryId)">
+      <div class="promo-banner">
+        <img :src="promoBanner.image" class="promo-image" />
+        <div class="promo-overlay">
+          <div class="promo-title">{{ promoBanner.description[0] }}</div>
+          <div class="promo-sub">{{ promoBanner.description[1] }}</div>
+          <div class="promo-note">{{ promoBanner.description[2] }}</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -70,13 +71,14 @@
       </div>
 
       <div class="products-grid">
-        <ProductCard
-          v-for="product in products"
+        <div
+          v-for="product in displayedProducts"
           :key="product.productid"
-          :product="product"
-          class="product-item"
+          class="product-card-wrap"
           @click="router.push('/product/' + product.productid)"
-        />
+        >
+          <ProductCard :product="product" />
+        </div>
       </div>
     </div>
   </div>
@@ -155,281 +157,16 @@
 
 <script lang="ts" setup>
 import ProductCard from '@/components/ProductCard.vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Product } from '@/types'
+import { categories } from '@/types'
 import { getAllProducts } from '@/apis'
 const router = useRouter()
 const isCarouselHovered = ref(false)
 
-// 模拟商品数据 (24个商品)
-// const products = ref<Product[]>([
-//   {
-//     productid: '1',
-//     sellerid: 'seller_001',
-//     title: '无线蓝牙耳机',
-//     content: '高品质真无线蓝牙耳机，支持主动降噪，续航时间长达24小时，音质清晰。',
-//     price: 299.99,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-15T10:30:00Z',
-//     category: '电子产品',
-//   },
-//   {
-//     productid: '2',
-//     sellerid: 'seller_002',
-//     title: '智能手表',
-//     content: '多功能智能手表，支持心率监测、运动追踪、消息提醒等功能，1.3英寸彩色显示屏。',
-//     price: 599.0,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-20T14:15:00Z',
-//     category: '智能设备',
-//   },
-//   {
-//     productid: '3',
-//     sellerid: 'seller_003',
-//     title: '休闲运动鞋',
-//     content: '轻便舒适的休闲运动鞋，透气网面设计，防滑橡胶底，适合日常穿着和轻度运动。',
-//     price: 199.99,
-//     photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-04-10T09:45:00Z',
-//     category: '鞋类',
-//   },
-//   {
-//     productid: '4',
-//     sellerid: 'seller_004',
-//     title: '轻薄笔记本电脑',
-//     content: '轻薄便携笔记本电脑，搭载最新处理器，14英寸高清屏幕，适合办公和学习。',
-//     price: 4999.99,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-07-01T11:20:00Z',
-//     category: '电脑数码',
-//   },
-//   {
-//     productid: '5',
-//     sellerid: 'seller_005',
-//     title: '全自动咖啡机',
-//     content: '一键式全自动咖啡机，支持多种咖啡制作方式，15Bar高压萃取，保证浓郁口感。',
-//     price: 899.0,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-03-22T16:40:00Z',
-//     category: '家用电器',
-//   },
-//   {
-//     productid: '6',
-//     sellerid: 'seller_006',
-//     title: '深层清洁护肤套装',
-//     content: '三步曲深层清洁护肤套装，包括洁面乳、爽肤水和保湿霜，适合各种肌肤类型。',
-//     price: 189.99,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-30T13:10:00Z',
-//     category: '美妆护肤',
-//   },
-//   {
-//     productid: '7',
-//     sellerid: 'seller_007',
-//     title: '无线充电板',
-//     content: '支持快充的无线充电板，兼容Qi标准，可同时为手机和手表充电。',
-//     price: 129.99,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-05T08:50:00Z',
-//     category: '电子产品',
-//   },
-//   {
-//     productid: '8',
-//     sellerid: 'seller_008',
-//     title: '机械键盘',
-//     content: 'RGB背光机械键盘，青轴设计，87键紧凑布局，专为游戏玩家打造。',
-//     price: 349.99,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-04-18T15:25:00Z',
-//     category: '电脑配件',
-//   },
-//   {
-//     productid: '9',
-//     sellerid: 'seller_009',
-//     title: '不锈钢保温水壶',
-//     content: '500ml不锈钢真空保温水壶，保冷保热可达12小时，轻巧便携。',
-//     price: 79.99,
-//     photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-07-12T10:05:00Z',
-//     category: '生活用品',
-//   },
-//   {
-//     productid: '10',
-//     sellerid: 'seller_010',
-//     title: '蓝牙音箱',
-//     content: '360度环绕音效蓝牙音箱，IPX7防水等级，续航时间长达15小时。',
-//     price: 199.0,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-03-28T12:30:00Z',
-//     category: '音响设备',
-//   },
-//   {
-//     productid: '11',
-//     sellerid: 'seller_011',
-//     title: '声波电动牙刷',
-//     content: '声波震动电动牙刷，每分钟40000次震动，5种清洁模式，IPX7防水。',
-//     price: 159.99,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-14T14:50:00Z',
-//     category: '个人护理',
-//   },
-//   {
-//     productid: '12',
-//     sellerid: 'seller_012',
-//     title: '20000mAh移动电源',
-//     content: '大容量移动电源，支持双向快充，配备多个输出接口，智能安全保护。',
-//     price: 129.0,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-08T11:15:00Z',
-//     category: '手机配件',
-//   },
-//   {
-//     productid: '13',
-//     sellerid: 'seller_013',
-//     title: '轻薄羽绒服',
-//     content: '冬季保暖羽绒服，含绒量90%，轻薄设计，时尚百搭款式。',
-//     price: 399.99,
-//     photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-07-03T09:20:00Z',
-//     category: '服装',
-//   },
-//   {
-//     productid: '14',
-//     sellerid: 'seller_014',
-//     title: '无线游戏手柄',
-//     content: '人体工学无线游戏手柄，支持多平台连接，6小时续航，震动反馈。',
-//     price: 249.99,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-04-25T13:40:00Z',
-//     category: '游戏设备',
-//   },
-//   {
-//     productid: '15',
-//     sellerid: 'seller_015',
-//     title: '4K高清摄像头',
-//     content: 'USB接口4K超清摄像头，适用于视频会议、直播和在线教学。',
-//     price: 299.99,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-30T10:10:00Z',
-//     category: '电脑配件',
-//   },
-//   {
-//     productid: '16',
-//     sellerid: 'seller_016',
-//     title: '专业瑜伽垫',
-//     content: '防滑加厚瑜伽垫，环保天然橡胶材质，提供优秀的缓冲和抓地力。',
-//     price: 89.99,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-18T15:30:00Z',
-//     category: '运动健身',
-//   },
-//   {
-//     productid: '17',
-//     sellerid: 'seller_017',
-//     title: '智能空气加湿器',
-//     content: '静音超声波加湿器，大容量水箱，支持定时功能和缺水保护。',
-//     price: 159.99,
-//     photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-07-08T12:20:00Z',
-//     category: '家用电器',
-//   },
-//   {
-//     productid: '18',
-//     sellerid: 'seller_018',
-//     title: '高倍数防晒霜',
-//     content: 'SPF50+ PA++++高倍防晒霜，清爽不油腻，防水防汗，适合户外活动。',
-//     price: 89.0,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-12T09:45:00Z',
-//     category: '美妆护肤',
-//   },
-//   {
-//     productid: '19',
-//     sellerid: 'seller_019',
-//     title: '指纹识别智能门锁',
-//     content: '多种开锁方式的智能门锁，指纹、密码、钥匙三重保障，安全便捷。',
-//     price: 899.0,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-04-05T14:15:00Z',
-//     category: '智能家居',
-//   },
-//   {
-//     productid: '20',
-//     sellerid: 'seller_020',
-//     title: '户外登山背包',
-//     content: '专业登山背包，60L大容量，防水耐磨材料，人体工学背负系统。',
-//     price: 299.99,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-22T11:35:00Z',
-//     category: '户外装备',
-//   },
-//   {
-//     productid: '21',
-//     sellerid: 'seller_021',
-//     title: '人体工学无线鼠标',
-//     content: '符合人体工学设计的无线鼠标，静音按键，DPI可调，适合长时间办公。',
-//     price: 69.99,
-//     photo: 'https://fuss10.elemecdn.com/0/6f/e35ff375812e6b0020b6b4e8f9583jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-06-28T16:50:00Z',
-//     category: '电脑配件',
-//   },
-//   {
-//     productid: '22',
-//     sellerid: 'seller_022',
-//     title: '长效保温饭盒',
-//     content: '304不锈钢内胆保温饭盒，长效保温保冷，便携设计，适合上班族。',
-//     price: 129.0,
-//     photo: 'https://fuss10.elemecdn.com/9/bb/e27858e973f5d7d3904835f46abbdjpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-04-14T10:25:00Z',
-//     category: '生活用品',
-//   },
-//   {
-//     productid: '23',
-//     sellerid: 'seller_023',
-//     title: '高性能台式主机',
-//     content: 'RTX显卡高性能游戏主机，i7处理器，16GB内存，1TB固态硬盘。',
-//     price: 4999.0,
-//     photo: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-07-15T13:40:00Z',
-//     category: '电脑数码',
-//   },
-//   {
-//     productid: '24',
-//     sellerid: 'seller_024',
-//     title: '体脂测量智能体重秤',
-//     content: '高精度体脂测量体重秤，连接手机APP，记录健康数据变化趋势。',
-//     price: 99.99,
-//     photo: 'https://fuss10.elemecdn.com/1/34/19aa98b1fcb2781c4fba33d850549jpeg.jpeg',
-//     status: 'published',
-//     publishtime: '2023-05-30T08:55:00Z',
-//     category: '健康监测',
-//   },
-// ])
-const products = ref<Product[]>([])
+const allProducts = ref<Product[]>([])
+const displayedProducts = computed(() => allProducts.value.filter((p) => p.status === 'ON_SALE'))
 
 onMounted(() => {
   fetchAllProducts()
@@ -447,24 +184,21 @@ const fetchAllProducts = async () => {
       // res 是 ApiResult<Product[]>
       const api = r as { code?: number; data?: Product[] }
       virtualProducts.value = api.code === 200 ? api.data || [] : []
-      console.log(virtualProducts, virtualProducts.value)
-      products.value = virtualProducts.value.filter((p) => p.status === 'ON_SALE')
-      console.log(products, products.value)
     } else if (r && typeof r === 'object' && 'data' in r) {
       // res 可能是 AxiosResponse<ApiResult<Product[]>>
       const apiContainer = r as { data?: { code?: number; data?: Product[] } }
       const api = apiContainer.data
       virtualProducts.value = api?.code === 200 ? api.data || [] : []
-      products.value = virtualProducts.value.filter((p) => p.status === 'ON_SALE')
     } else if (Array.isArray(res)) {
       // 直接返回数组的情况
-      products.value = res
+      virtualProducts.value = res
     } else {
-      products.value = []
+      virtualProducts.value = []
     }
+    allProducts.value = virtualProducts.value
   } catch (error) {
     console.error('获取商品数据失败:', error)
-    products.value = []
+    allProducts.value = []
   }
 }
 
@@ -473,70 +207,42 @@ const handleCarouselHover = (hovered: boolean) => {
   isCarouselHovered.value = hovered
 }
 
-// 商品分类数据
-const categories = ref([
-  { id: 1, name: '电子产品', icon: 'Monitor' },
-  { id: 2, name: '服装鞋帽', icon: 'Handbag' },
-  { id: 3, name: '家居用品', icon: 'House' },
-  { id: 4, name: '运动户外', icon: 'Bicycle' },
-])
+// 使用通用类型定义的分类常量（含 id 与 name）
 
-// 轮播图数据
+// 将首图移至右侧活动位
+const promoBanner = {
+  categoryId: 'home',
+  image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_theme_daily_necessities.png',
+  description: ['智享生活焕新季', '家电狂欢省到底', '爆品直降 限时抢购'],
+}
+
+// 轮播图数据（移除首图）
 const carouselSlides = ref([
   {
-    id: 1,
-    image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_home_appliances.png',
-    description: ['智享生活焕新季', '家电狂欢省到底', '爆品直降 限时抢购'],
-  },
-  {
-    id: 2,
+    categoryId: 'electronics',
     image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_cell_phone.png',
     description: ['手机焕新季', '正品旗舰放心购', '官方正品 限时直降'],
   },
   {
-    id: 3,
+    categoryId: 'clothing',
     image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_trendy_clothing.png',
     description: ['潮流穿搭新势力', '解锁时尚新趋势', '潮服好价 新品折扣'],
   },
   {
-    id: 4,
+    categoryId: 'electronics',
     image:
       'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_digital_equipment.png',
     description: ['潮玩黑科技', '数码3C狂欢盛典', '官方正品 即刻开抢'],
   },
   {
-    id: 5,
+    categoryId: 'home',
     image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_home_decoration.png',
     description: ['大牌家具家装', '点缀品质生活', '正品直降 省钱省心'],
   },
   {
-    id: 6,
+    categoryId: 'other',
     image: 'https://storage.360buyimg.com/component-libray/images/pc/pc_banner_snacks.png',
     description: ['办公轻补给', '宅家追剧能量站', '精选好物 超值优惠'],
-  },
-])
-
-// 推荐活动数据
-const promotions = ref([
-  {
-    id: 1,
-    title: '限时特惠',
-    icon: 'Discount',
-  },
-  {
-    id: 2,
-    title: '新品上市',
-    icon: 'Goods',
-  },
-  {
-    id: 3,
-    title: '热销榜单',
-    icon: 'TrendCharts',
-  },
-  {
-    id: 4,
-    title: '会员专享',
-    icon: 'User',
   },
 ])
 </script>
@@ -554,6 +260,60 @@ const promotions = ref([
   height: 350px;
   display: flex;
   flex-direction: column;
+}
+
+.promo-section {
+  cursor: pointer;
+  flex: 0 0 calc(20% - 10px);
+  height: 350px;
+}
+
+.promo-banner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.promo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.promo-section:hover .promo-image {
+  transform: scale(1.02);
+}
+
+.promo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  color: #fff;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.promo-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.promo-sub {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.promo-note {
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 /* 分类区域样式 */
@@ -618,7 +378,7 @@ const promotions = ref([
 .category-icon {
   font-size: 18px;
   margin-right: 10px;
-  color: #409eff;
+  color: #666;
   width: 24px;
   text-align: center;
 }
@@ -713,20 +473,40 @@ const promotions = ref([
   gap: 20px;
 }
 
-.product-item {
+.product-card-wrap {
   cursor: pointer;
-  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
-.product-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+.product-card-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
+  opacity: 0;
+  transition: none;
+}
+
+.product-card-wrap:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.product-card-wrap:hover::after {
+  opacity: 0;
 }
 
 .recommend-header {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   margin-bottom: 30px;
 }
 

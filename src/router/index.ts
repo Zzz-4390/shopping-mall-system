@@ -11,6 +11,8 @@ import ProductPublish from '@/pages/ProductPublish.vue'
 import LayoutWrapper from '@/pages/LayoutWrapper.vue'
 import PaymentPage from '@/pages/PaymentPage.vue'
 import PaymentSuccess from '@/pages/PaymentSuccess.vue'
+import CategoryPage from '@/pages/CategoryPage.vue'
+import SearchPage from '@/pages/SearchPage.vue'
 const routes = [
   {
     path: '',
@@ -41,12 +43,27 @@ const routes = [
         component: ProductDetail,
       },
       {
+        path: '/category/:category',
+        name: 'CategoryPage',
+        component: CategoryPage,
+      },
+      {
+        path: '/search',
+        name: 'SearchPage',
+        component: SearchPage,
+      },
+      {
         path: '/publish',
         component: ProductPublish,
       },
       {
         path: '/payment/:sellerid/:productid/:quantity',
         name: 'PaymentPage',
+        component: PaymentPage,
+      },
+      {
+        path: '/payment',
+        name: 'PaymentCart',
         component: PaymentPage,
       },
       {

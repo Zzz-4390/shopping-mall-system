@@ -48,7 +48,7 @@ const categoryMap: Record<string, string> = {
   books: '图书教材',
   home: '家居用品',
   sports: '运动户外',
-  other: '其他'
+  other: '其他',
 }
 
 // 获取分类名称
@@ -62,17 +62,33 @@ const getCategoryName = (categoryId: string): string => {
   border: 1px solid #ebeef5;
   border-radius: 8px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
   background: #fff;
   position: relative;
   cursor: pointer;
 }
 
+.product-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.18), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
 .product-card:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  border-color: #ff0000;
-  outline: 1px solid #ff0000;
-  outline-offset: -1px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+  transform: translateY(-6px) scale(1.01);
+}
+
+.product-card:hover::after {
+  opacity: 1;
 }
 
 .product-image {
@@ -89,6 +105,11 @@ const getCategoryName = (categoryId: string): string => {
   max-width: 100%;
   max-height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.06);
 }
 
 .product-info {
